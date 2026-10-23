@@ -1383,8 +1383,9 @@ const taCss='background:var(--bg);border:2px solid var(--line);border-radius:12p
 function openWords(){
   const box=col(),ta=el('textarea');ta.rows=8;ta.dir='auto';ta.placeholder='מילה בכל שורה, אפשר עם תרגום. למשל:\napple - תפוח\nbicycle\nborrow';ta.style.cssText=taCss;
   const msg=el('small',null,''),go=el('button','p','המשך');
-  go.onclick=()=>startHelp('M',[],ta.value.trim(),msg,go);
-  box.append(el('div',null,'הקלידו או הדביקו את רשימת המילים לשינון. מילים בלי תרגום יתורגמו אוטומטית.'),ta,msg,go);
+  const fi=el('input');fi.type='file';fi.accept='image/*,application/pdf';fi.multiple=true;
+  go.onclick=()=>startHelp('M',[...fi.files],ta.value.trim(),msg,go);
+  box.append(el('div',null,'הקלידו או הדביקו את רשימת המילים לשינון, או העלו צילום או PDF של הרשימה. מילים בלי תרגום יתורגמו אוטומטית.'),ta,el('div',null,'או העלאת צילום / PDF:'),fi,msg,go);
   openModal('שינון מילים',box);setTimeout(()=>ta.focus(),50);
 }
 function openFileHelp(){
@@ -1412,7 +1413,7 @@ const _call=call;
 async function startHelp(kind,files,text,msg,btn){
   if(!S.ak){openGen();return}
   if(kind==='H'&&!files.length){msg.textContent='העלו קובץ או תמונה';return}
-  if(kind==='M'&&!text){msg.textContent='הקלידו או הדביקו רשימת מילים';return}
+  if(kind==='M'&&!text&&!files.length){msg.textContent='הקלידו רשימת מילים או העלו קובץ';return}
   if(files.length>6){msg.textContent='אפשר עד 6 קבצים';return}
   btn.disabled=true;msg.textContent='קורא את החומר... זה יכול לקחת כמה שניות';
   try{
@@ -1858,7 +1859,7 @@ const IS=[
      '<b>⚡ סיבוב מהיר:</b> מקבלים מילה בעברית ואומרים אותה באנגלית. המיקרופון נפתח לבד, ובסוף מקבלים כמה מילים הצלחתם לשלוף תוך 5, 7 ו-10 שניות.',
      'משחקי שיחה עם המורה: 20 שאלות, תאר בלי להגיד, שרשרת סיפור, נכון ולא נכון ומשימות.']},
  {i:'📎',t:'עזרה בלימודים',
-  b:['<b>שינון מילים:</b> יש מבחן מחר? הקלידו או הדביקו את רשימת המילים, בדקו אותה, והמורה יתרגל אתכם בקבוצות קטנות.',
+  b:['<b>שינון מילים:</b> יש מבחן מחר? הקלידו, הדביקו או העלו צילום או PDF של רשימת המילים, בדקו אותה, והמורה יתרגל אתכם בקבוצות קטנות.',
      '<b>שיחה על קובץ:</b> העלו צילום, סריקה או PDF של דפים, ושוחחו עם המורה עליהם. אתם מכוונים אותו למה שצריך, והוא נותן בתחילה רק רמזים ולא מגלה מיד את התשובה.',
      'נמצא ב<b>בחירת שיעור</b> ובמסך הבית.']},
  {i:'🏆',t:'התקדמות ומוטיבציה',
