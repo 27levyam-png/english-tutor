@@ -77,6 +77,19 @@ footer{display:flex;gap:8px;padding:10px 16px 16px}
 .cal .on{background:var(--ac);color:#fff;border-color:var(--ac)}.cal .off{opacity:.4}.cal .h{border:0;color:var(--mut);font-size:12px}.cal .today{outline:2px solid var(--tx)}
 #gset{display:none;flex-direction:column;gap:10px}#gset.open{display:flex}
 #mb select{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+#aqt{position:relative;height:300px;border-radius:18px;overflow:hidden;background:linear-gradient(#8fdcff,#2a8fd0 70%,#1b6fa8);border:2px solid var(--line)}
+#aqt .sand{position:absolute;left:0;right:0;bottom:0;height:34px;background:linear-gradient(#f2d99b,#d8b878)}
+#aqt .dc{position:absolute;bottom:20px;line-height:1}
+#aqt .fs{position:absolute;line-height:1;animation:aqs 14s linear infinite}
+#aqt .fs span{display:block;animation:aqb 2.4s ease-in-out infinite}
+@keyframes aqs{0%{left:2%;transform:scaleX(-1)}49%{left:80%;transform:scaleX(-1)}50%{left:80%;transform:scaleX(1)}99%{left:2%;transform:scaleX(1)}100%{left:2%;transform:scaleX(-1)}}
+@keyframes aqb{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+#aqt .pl{position:absolute;font-size:15px;top:-24px;transition:top 1.7s ease-in,opacity .6s}
+#aqt .bb{position:absolute;bottom:34px;font-size:13px;opacity:.6;animation:aqu 7s linear infinite}
+@keyframes aqu{to{transform:translateY(-290px);opacity:0}}
+@keyframes aqg{0%{transform:scale(1)}50%{transform:scale(1.6)}100%{transform:scale(1)}}
+#aqt .grow span{animation:aqg .9s ease 2}
+@media(prefers-reduced-motion:reduce){#aqt .fs,#aqt .fs span,#aqt .bb{animation:none}}
 </style>
 <style id="theme">
 :root{--bg:#f7f9fc;--card:#fff;--tx:#2b3a42;--mut:#6b7b84;--ac:#58cc02;--acd:#58a700;--blue:#1cb0f6;--bluedk:#1899d6;--org:#ff9600;--orgd:#e08400;--pur:#ce82ff;--purd:#a568cc;--yel:#ffc800;--red:#ff4b4b;--line:#e3e8ee;--me:#ddf4ff}
@@ -312,6 +325,7 @@ body.tpo #tpb{display:none!important}
   <div id="ulist" style="display:flex;flex-direction:column;gap:8px"></div>
   <button id="unew">＋ הוספת משתמש חדש</button>
   <div id="gset"><button class="p" id="gsave">✓ אישור ושמירה</button>
+    <label>מודל השיחה של המורה<select id="mdl"><option value="claude-haiku-5-5">Haiku 5.5: מהיר וזול מאוד</option><option value="claude-sonnet-5-5">Sonnet 5.5: חכם ויצירתי יותר, עולה בערך פי 20</option></select><small>משפיע רק על השיחה עם המורה. תרגומים ובדיקות ממשיכים עם Haiku.</small></label>
     <label>כתובת בדיקת עדכונים (לא חובה)<input id="upd" dir="ltr" placeholder="https://.../version.json"></label>
     <div class="row"><button id="bkx">גיבוי משתמשים</button><button id="bkr">שחזור מגיבוי</button><input id="bki" type="file" accept=".json" hidden></div>
     <small style="color:var(--mut)">המפתחות והמשתמשים נשמרים רק בדפדפן במחשב הזה. הגיבוי לא כולל מפתחות.</small></div>
@@ -353,7 +367,7 @@ async function call(msgs,sys,max){
   return j.content.map(c=>c.text||'').join('');
 }
 async function callStream(msgs,sys,max,onD){
-  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'x-api-key':S.ak,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true','content-type':'application/json'},body:JSON.stringify({model:'claude-haiku-5-5',max_tokens:max||400,system:sys,messages:msgs,stream:true})});
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'x-api-key':S.ak,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true','content-type':'application/json'},body:JSON.stringify({model:S.model||'claude-haiku-5-5',max_tokens:max||400,system:sys,messages:msgs,stream:true})});
   if(!r.ok){let m=r.status;try{m=(await r.json()).error.message}catch(e){}throw new Error(m)}
   const rd=r.body.getReader(),dec=new TextDecoder();let buf='';
   for(;;){
@@ -551,9 +565,13 @@ $('rp').onclick=()=>setRate((S.rate||.9)+.05);
 $('rt').onclick=()=>speak('Hello! This is how I sound at this speed.');
 setRate(S.rate||.9);
 
+function varyPrompt(){
+  if(L&&L.type==='X')return'';
+  return `\nVARIETY: Never repeat a question, an opener or a phrase you already used earlier in this conversation. React specifically to what the student just said (pick up one concrete detail), then move the conversation forward in a fresh direction: ask about a detail, a feeling, a past or future moment, a opinion or a small what-if; sometimes share one short, believable thing from your own side, or add a tiny surprise or mini-challenge. Avoid generic filler such as "That's great!" every time.`;
+}
 const _sys=system;
 system=function(noGloss){
-  let x=_sys()+profPrompt()+mixPrompt()+speechPrompt()+lessonPrompt()+recyclePrompt()+slPrompt()+corrPrompt()+`\nUse ${S.acc==='gb'?'British':'American'} English spelling, vocabulary and expressions, and speak like a native ${S.acc==='gb'?'British':'American'} person.`+(L&&L.ending?'\nThe lesson is over now: do not ask any question; just say goodbye.':(L?'\nIf (and only if) the student clearly says that they want to stop, leave or end the lesson itself now (in English or Hebrew), then do not ask a question: say a warm goodbye by name, give a short spoken summary of THIS lesson only (about 60 words, no lists), say the new English words of this lesson in English only without any translation or Hebrew, mention 2 or 3 gentle focus points for next time as a plan, and finish the reply with the exact token [[END]]. Never write that token in any other situation.':''));
+  let x=_sys()+profPrompt()+mixPrompt()+speechPrompt()+lessonPrompt()+recyclePrompt()+slPrompt()+corrPrompt()+varyPrompt()+`\nUse ${S.acc==='gb'?'British':'American'} English spelling, vocabulary and expressions, and speak like a native ${S.acc==='gb'?'British':'American'} person.`+(L&&L.ending?'\nThe lesson is over now: do not ask any question; just say goodbye.':(L?'\nIf (and only if) the student clearly says that they want to stop, leave or end the lesson itself now (in English or Hebrew), then do not ask a question: say a warm goodbye by name, give a short spoken summary of THIS lesson only (about 60 words, no lists), say the new English words of this lesson in English only without any translation or Hebrew, mention 2 or 3 gentle focus points for next time as a plan, and finish the reply with the exact token [[END]]. Never write that token in any other situation.':''));
   return x;
 };
 const SL={
@@ -679,7 +697,7 @@ function enter(u){
 }
 function showLogin(){
   speechSynthesis.cancel();
-  $('login').classList.add('show');$('upd').value=S.upd||'';
+  $('login').classList.add('show');$('upd').value=S.upd||'';$('mdl').value=S.model||'claude-haiku-5-5';
   const L=$('ulist');L.innerHTML='';
   DB.list.forEach(u=>{
     const r=document.createElement('div');r.className='urow';
@@ -1073,12 +1091,14 @@ function finishLesson(farewell,sum,quiet){
   if(real&&t.type!=='X')saveSession(t,mins);
   D.forEach(w=>{delete w.hid});saveD();drawD();
   const xp=t.type==='X'?10:25;trackTime();addXP(xp);
+  if(real){try{aqFood(t.type==='X'?1:2);aq().miss=0}catch(e){}}
   L=null;markToday();updateLbar();checkBadges();
   if(farewell){
     sfx('win');
     const card=el('div','m sum');card.dir='rtl';
     const bt=el('button','p','חזרה למסך הראשי');bt.style.marginTop='8px';bt.onclick=()=>{speechSynthesis.cancel();showView('home')};
     card.append(el('div',null,'✓ השיעור הסתיים · '+mins+' דקות'+(S.gf==='high'?' · ⭐ +'+xp:'')),bt);
+    if(S.gf==='high'){const fb=el('button',null,'🐠 האכלת הדגים');fb.style.marginTop='8px';fb.onclick=openAquarium;card.append(fb)}
     $('chat').append(card);$('chat').scrollTop=1e9;
   }else{speechSynthesis.cancel();showView('home');if(t.type!=='X'&&!quiet)showProg()}
 }
@@ -1122,7 +1142,7 @@ function resumeLesson(id){
 {const g=$('gset'),sv=$('gsave');['ak','dk','micsel'].forEach(id=>g.insertBefore($(id).closest('label'),sv))}
 {const g=$('gset');g.prepend(el('h3',null,'הגדרות כלליות'));const x=el('button','cx','✕');x.setAttribute('aria-label','סגור');x.onclick=()=>g.classList.remove('open');g.prepend(x)}
 /* ---- version & updates ---- */
-const APP_VERSION='1.0',APP_DATE='22.10.2026',UPDATE_URL='';
+const APP_VERSION='1.0.2',APP_DATE='25.10.2026',UPDATE_URL='';
 $('ftx').innerHTML='© '+new Date().getFullYear()+' בצלאל. כל הזכויות שמורות<br>גרסה '+APP_VERSION+' · '+APP_DATE;
 function vNew(a,b){const x=String(a).split('.').map(Number),y=String(b).split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const p=x[i]||0,q=y[i]||0;if(p!==q)return p>q}return false}
 async function checkUpdate(silent){
@@ -1148,7 +1168,7 @@ if('serviceWorker' in navigator&&/^https?:/.test(location.protocol))navigator.se
 function openGen(){showLogin();$('gset').classList.add('open')}
 function saved(b,close){const o=b.textContent;b.textContent='✓ ההגדרות נשמרו';setTimeout(()=>{b.textContent=o;if(close)close()},1000)}
 $('gsb').onclick=()=>$('gset').classList.toggle('open');
-$('gsave').onclick=function(){S.upd=$('upd').value.trim();S.ak=$('ak').value=$('ak').value.trim();S.dk=$('dk').value=$('dk').value.trim();save();saved(this,()=>{$('gset').classList.remove('open');$('khint').style.display=(!S.ak||!S.dk)?'':'none'})};
+$('gsave').onclick=function(){S.upd=$('upd').value.trim();S.model=$('mdl').value;S.ak=$('ak').value=$('ak').value.trim();S.dk=$('dk').value=$('dk').value.trim();save();saved(this,()=>{$('gset').classList.remove('open');$('khint').style.display=(!S.ak||!S.dk)?'':'none'})};
 function closeSet(){
   $('set').classList.remove('open');
   if(U&&U.setup){delete U.setup;saveU();document.body.classList.remove('setup');$('sw').style.display='none';try{renderHome()}catch(e){}}
@@ -1214,6 +1234,7 @@ function renderHome(){
   .forEach(x=>{const b=el('button','tile'+(x[2]?' t-'+x[2]:''));b.append(el('span',null,x[0]),document.createTextNode(x[1]));b.onclick=x[3];tiles.append(b)});
   const hb2=el('button','tile t-org');hb2.style.cssText='grid-column:1/-1;flex-direction:row;justify-content:center;gap:10px';hb2.append(el('span',null,'📎'),document.createTextNode('עזרה בלימודים: שינון מילים ושיחה על דפים'));hb2.onclick=openHelp;tiles.append(hb2);
   const hb3=el('button','tile t-pur');hb3.style.cssText=hb2.style.cssText;hb3.append(el('span',null,'🎮'),document.createTextNode('משחקים'));hb3.onclick=openGames;tiles.append(hb3);{const hb4=el('button','tile t-yel');hb4.style.cssText=hb2.style.cssText;hb4.append(el('span',null,'📚'),document.createTextNode('שיעורים קודמים'));hb4.onclick=openSessions;tiles.append(hb4)}
+  if(S.gf==='high'){try{aqTick();const hb5=el('button','tile t-grn');hb5.style.cssText=hb2.style.cssText;hb5.append(el('span',null,'🐠'),document.createTextNode('האקווריום · מנות אוכל: '+aq().food));hb5.onclick=openAquarium;tiles.append(hb5)}catch(e){console.error(e)}}
   const hc=el('div','hcol');hc.append(hi,hero);try{const gc=goalCard();if(gc)hc.append(gc)}catch(e){console.error(e)}hc.append(two);h.append(hc,tiles);{const ib=el('button',null,'ℹ️ סקירה: איך משתמשים בתוכנה');ib.onclick=openIntro;h.append(ib)}
 }
 
@@ -1480,7 +1501,7 @@ function trackTime(){
 }
 function checkGoal(before){
   const k=dk(new Date()),g=goalMin();U.gd=U.gd||{};
-  if(before<g&&minsToday()>=g&&!U.gd[k]){U.gd[k]=1;saveU();addXP(15);celebrate('🎯 היעד היומי הושג!','למדתם '+g+' דקות היום. כל הכבוד!');awardBadge('goal3',Object.keys(U.gd).length>=3)}
+  if(before<g&&minsToday()>=g&&!U.gd[k]){U.gd[k]=1;saveU();addXP(15);celebrate('🎯 היעד היומי הושג!','למדתם '+g+' דקות היום. כל הכבוד!');try{aqFood(2)}catch(e){}awardBadge('goal3',Object.keys(U.gd).length>=3)}
 }
 let tt=0;
 function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(tt);tt=setTimeout(()=>{e.style.display='none'},3800)}
@@ -1602,13 +1623,104 @@ function match(said,en){
   if(t.includes(' '))return t.split(' ').every(w=>c.split(' ').some(x=>x===w||(w.length>=5&&lev(x,w)<=1)));
   return c.split(' ').some(w=>w===t||(t.length>=5&&lev(w,t)<=1));
 }
-function gameDone(xp){trackTime();addXP(xp||10);U.glog=U.glog||[];U.glog.push(Date.now());saveU();awardBadge('g1');checkBadges()}
+function gameDone(xp){trackTime();addXP(xp||10);if(xp!==0){try{const a=aq(),t=dk(new Date());if(a.fd.d!==t)a.fd={d:t,n:0};if(a.fd.n<3){a.fd.n++;aqFood(1)}}catch(e){}}U.glog=U.glog||[];U.glog.push(Date.now());saveU();awardBadge('g1');checkBadges()}
+
+
+/* ---- aquarium ---- */
+const AQT=[0,2,6,12,20],AQS=[24,32,42,54,68],AQE=['🐟','🐠','🐡','🐟','🐠'];
+function aq(){return U.aq=U.aq||{fish:[{id:1,g:0}],food:1,sp:0,miss:0,chk:dk(new Date()),fd:{d:'',n:0},nid:2}}
+function aqLv(g){let l=0;AQT.forEach((t,i)=>{if(g>=t)l=i});return l}
+function aqFood(n){const a=aq();a.food=Math.min(12,a.food+n);saveU();if(S.gf==='high')toast('🐟 +'+n+' אוכל לדגים (בסך הכל '+a.food+')')}
+function aqShrink(){
+  const a=aq();let b=null;a.fish.forEach(f=>{if(aqLv(f.g)>0&&(!b||f.g>b.g))b=f});
+  if(b){b.g=AQT[aqLv(b.g)-1];a.note='הדגים התגעגעו אליכם והדג הגדול קטן קצת. שיעור יחזיר אותו לגדול.'}
+}
+function aqTick(){
+  if(!U)return;const a=aq(),today=dk(new Date());
+  if(a.chk>=today)return;
+  const d=new Date(a.chk+'T12:00:00');let n=0;
+  while(n++<400){
+    d.setDate(d.getDate()+1);if(dk(d)>=today)break;
+    if(U.log[dk(d)])a.miss=0;
+    else if(U.days[d.getDay()]){a.miss++;if(a.miss>=2){aqShrink();a.miss=0}}
+  }
+  a.chk=today;saveU();
+}
+function aqFeed(){
+  const a=aq();if(a.food<1)return null;a.food--;let grew=[];
+  a.fish.forEach(f=>{const b=aqLv(f.g);f.g++;if(aqLv(f.g)>b)grew.push(f.id)});
+  a.sp++;let born=false;
+  if(a.sp>=6&&a.fish.length<8&&a.fish.some(f=>aqLv(f.g)>=3)){a.fish.push({id:a.nid++,g:0});a.sp=0;born=true}
+  a.miss=0;a.feeds=(a.feeds||0)+1;saveU();return {grew,born};
+}
+function openAquarium(){
+  if(!U)return;aqTick();
+  const a=aq(),box=col(),tank=el('div');tank.id='aqt';
+  const msg=el('div',null,'');msg.style.cssText='text-align:center;font-weight:700;min-height:1.5em';
+  const info=el('div'),bar=el('div','bar'),bi=el('i');bar.append(bi);
+  const fb=el('button','p','');
+  const draw=(growIds)=>{
+    tank.replaceChildren(el('div','sand'));
+    const n=a.fish.length;
+    [['🌿',4,30],['🐚',28,24],['🏰',55,48],['🪸',78,40],['💎',90,22]].forEach(([e,l,sz],i)=>{if(n>=[1,3,5,6,8][i]){const d=el('div','dc',e);d.style.left=l+'%';d.style.fontSize=sz+'px';tank.append(d)}});
+    for(let i=0;i<5;i++){const b=el('div','bb','○');b.style.left=(10+i*19)+'%';b.style.animationDelay=(-i*1.4)+'s';tank.append(b)}
+    a.fish.forEach((f,i)=>{
+      const lv=aqLv(f.g),x=el('div','fs'+(growIds&&growIds.includes(f.id)?' grow':''));x.style.top=(8+(i*37)%52)+'%';x.style.animationDuration=(11+(i%4)*3)+'s';x.style.animationDelay=(-i*3.1)+'s';
+      const sp=el('span',null,AQE[(i+lv)%AQE.length]);sp.style.fontSize=AQS[lv]+'px';sp.style.animationDelay=(-i*.7)+'s';x.append(sp);tank.append(x)});
+    const big=a.fish.reduce((m,f)=>f.g>m.g?f:m,a.fish[0]),bl=aqLv(big.g);
+    info.textContent='🍽 מנות אוכל: '+a.food+' · 🐟 דגים: '+n+' · הדג הגדול: רמה '+(bl+1)+' מתוך '+AQT.length;
+    bar.style.display=bl>=AQT.length-1?'none':'';
+    if(bl<AQT.length-1)bi.style.width=Math.round((big.g-AQT[bl])/(AQT[bl+1]-AQT[bl])*100)+'%';
+    fb.textContent=a.food>0?'🍽 האכלת הדגים':'אין אוכל כרגע';fb.disabled=a.food<1;
+  };
+  fb.onclick=()=>{
+    if(a.food<1)return;fb.disabled=true;sfx('flip');
+    for(let i=0;i<6;i++){const p=el('div','pl','🟤');p.style.left=(15+Math.random()*70)+'%';tank.append(p);setTimeout(()=>{p.style.top='72%'},40+i*90);setTimeout(()=>{p.style.opacity='0'},1500+i*60)}
+    setTimeout(()=>{
+      const r=aqFeed();a.note='';
+      draw(r.grew);
+      if(r.born){sfx('win');confetti();msg.textContent='🥚 נולד דגיג חדש!'}
+      else if(r.grew.length){sfx('ok');confetti(20);msg.textContent='🎉 הדג גדל!'}
+      else{sfx('ok');msg.textContent='נעים! הדגים אכלו.'}
+    },1800);
+  };
+  const tips=el('small',null,'איך מקבלים אוכל? שיעור: 2 מנות · משחק: מנה (עד 3 ביום) · עמידה ביעד היומי: 2 מנות. כל האכלה מגדילה את הדגים לאט, ודג גדול מוליד דגיגים. אם מפספסים כמה ימי לימוד, הדג הגדול מתכווץ קצת, ושיעור מחזיר אותו.');
+  box.append(tank,msg,info,bar,fb,tips);draw();
+  if(a.note)msg.textContent=a.note;
+  else if(a.miss>0)msg.textContent='הדגים מחכים לשיעור. עוד יום לימוד שיפוספס והדג הגדול יקטן.';
+  openModal('🐠 האקווריום',box);
+}
 
 /* ---- games hub ---- */
+function gIntro(g){
+  GM.id++;const box=col();
+  box.append(el('div','big',g.icon+' '+g.t));
+  const w=el('div',null,g.what);w.style.fontWeight='700';box.append(w);
+  if(g.how){const ul=el('div');ul.style.cssText='display:flex;flex-direction:column;gap:6px';g.how.forEach(x=>ul.append(el('div',null,'• '+x)));box.append(ul)}
+  if(g.note)box.append(el('small',null,g.note));
+  (g.modes||[{l:'▶ התחל',go:g.go}]).forEach(m=>{
+    if(m.d){const d=el('div',null,m.d);d.style.cssText='margin-top:6px';box.append(d)}
+    const b=el('button','p',m.l);b.onclick=m.go;box.append(b)});
+  const bk=el('button',null,'→ חזרה למשחקים');bk.onclick=openGames;box.append(bk);
+  openModal('',box);
+}
+const GI={
+ scr:{icon:'🔀',t:'אותיות מבולבלות',what:'מסדרים אותיות מבולבלות למילה באנגלית.',how:['מופיעה מילה בעברית ומתחתיה אותיות באנגלית בסדר שגוי.','מקלידים את המילה באנגלית בסדר הנכון ולוחצים בדיקה (או Enter).','אפשר לדלג. יש 8 מילים בכל סיבוב.'],go:()=>gScramble()},
+ spd:{icon:'⚡',t:'סיבוב מהיר',what:'משחק מהירות בדיבור: אומרים באנגלית, בקול, מילים שמופיעות בעברית.',how:['לוחצים התחל. מופיעה מילה בעברית.','אומרים אותה באנגלית בקול. המיקרופון נפתח לבד אחרי כל מילה, ואין צורך ללחוץ עליו.','צריך להתחיל לענות תוך 10 שניות. מודדים כמה מהר שלפתם את המילה: עד 5, 7 או 10 שניות.','יש 10 מילים בסיבוב. בסוף מקבלים סיכום, ואפשר להוסיף למילון את המילים שהחמצתם.'],note:'צריך לאשר את המיקרופון בדפדפן, ולהזין מפתח Deepgram בהגדרות.',go:()=>gSpeed()},
+ q20:{icon:'❓',t:'20 שאלות',what:'משחק ניחושים בשיחה עם המורה, בשאלות של כן ולא באנגלית. בוחרים מי מנחש:',modes:[
+   {d:'המורה חושב על מילה, ואתם שואלים עד 20 שאלות של כן ולא כדי לנחש אותה, למשל "Is it an animal?".',l:'❓ אתם מנחשים',go:()=>startX('q20')},
+   {d:'אתם חושבים על מילה (בלי להגיד אותה). המורה שואל אתכם עד 20 שאלות, ואתם עונים באנגלית: Yes, No או Sometimes.',l:'🧠 המורה מנחש',go:()=>startX('q20r')}]},
+ ds:{icon:'🗣️',t:'תאר בלי להגיד',what:'משחק ניחושים שבו מתארים מילה באנגלית בלי להגיד אותה. בוחרים מי מתאר:',modes:[
+   {d:'מופיעה לכם מילה בסתר. אתם מתארים אותה באנגלית, בלי להגיד אותה, והמורה מנחש.',l:'🗣️ אתם מתארים',go:()=>startX('ds')},
+   {d:'המורה מתאר מילה באנגלית, מדרגה לדרגה, בלי להגיד אותה, ואתם מנחשים מהי.',l:'🔎 המורה מתאר',go:()=>startX('dsr')}]},
+ st:{icon:'📖',t:'שרשרת סיפור',what:'בונים סיפור מצחיק ביחד עם המורה, משפט כל אחד.',how:['המורה פותח במשפט, ואתם מוסיפים את המשפט הבא באנגלית.','אפשר להשתמש במילים מהמילון שלכם.','אחרי כ-10 משפטים המורה מסיים את הסיפור.'],go:()=>startX('st')},
+ tf:{icon:'✅',t:'נכון ולא נכון',what:'המורה אומר שלושה משפטים על עצמו, ואחד מהם לא נכון. מנחשים איזה.',how:['אפשר לשאול את המורה כמה שאלות קצרות לפני הניחוש.','המורה חושף את התשובה ועובר לנושא חדש.'],go:()=>startX('tf')},
+ ms:{icon:'🎯',t:'משימה',what:'משחק תפקידים עם מטרה ברורה שצריך להשיג באנגלית.',how:['המורה מציג מצב, למשל קנייה או שאלת דרך, ומטרה אחת.','משחקים את התפקיד בשיחה עד שהמטרה מושגת. אם נתקעים, המורה נותן רמז.'],go:()=>startX('ms')}
+};
 function openGames(){
   if(!U)return;GM.id++;
   const g=el('div','topics');
-  [['🃏','משחק זיכרון',()=>gPairs()],['🔤','ניחוש מילה',gWordle],['🔀','אותיות מבולבלות',gScramble],['⚡','סיבוב מהיר (דיבור)',gSpeed],['❓','20 שאלות',()=>startX('q20')],['🗣️','תאר בלי להגיד',()=>startX('ds')],['📖','שרשרת סיפור',()=>startX('st')],['✅','נכון ולא נכון',()=>startX('tf')],['🎯','משימה',()=>startX('ms')]]
+  [['🃏','משחק זיכרון',()=>gPairs()],['🔀','אותיות מבולבלות',()=>gIntro(GI.scr)],['⚡','סיבוב מהיר (דיבור)',()=>gIntro(GI.spd)],['❓','20 שאלות',()=>gIntro(GI.q20)],['🗣️','תאר בלי להגיד',()=>gIntro(GI.ds)],['📖','שרשרת סיפור',()=>gIntro(GI.st)],['✅','נכון ולא נכון',()=>gIntro(GI.tf)],['🎯','משימה',()=>gIntro(GI.ms)]]
   .forEach(x=>{const b=el('button','topic');b.append(el('span',null,x[0]),document.createTextNode(x[1]));b.onclick=x[2];g.append(b)});
   openModal('משחקים',g);
 }
@@ -1645,40 +1757,6 @@ function gPairs(lv){
     grid.append(b);
   });
   box.append(el('div',null,'שלב '+(lv+1)+': מצאו את הזוגות, מילה באנגלית והתרגום שלה'),grid,mv);openModal('משחק זיכרון',box);
-}
-function gWordle(){
-  const p=pool(1,w=>/^[a-z]{5}$/i.test(w))[0],id=++GM.id;
-  if(!p)return;
-  const ans=p.en.toLowerCase(),box=col(),grid=el('div'),cells=[],keys={};
-  grid.style.cssText='display:flex;flex-direction:column;gap:6px;direction:ltr;align-items:center';
-  for(let r=0;r<6;r++){const rw=el('div'),row=[];rw.style.cssText='display:flex;gap:6px';for(let c=0;c<5;c++){const x=el('div');x.style.cssText='width:46px;height:46px;border:2px solid var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;text-transform:uppercase';row.push(x);rw.append(x)}cells.push(row);grid.append(rw)}
-  let r=0,cur='',over=false;const msg=el('div');msg.style.cssText='text-align:center;min-height:1.6em;font-weight:700';
-  const paint=()=>{cells[r]&&cells[r].forEach((x,i)=>{x.textContent=cur[i]||''})};
-  const mark=(ch,col2)=>{const k=keys[ch];if(!k)return;const rank={'#8a949a':1,'#ffc800':2,'#58cc02':3};const old=k.dataset.c;if(!old||rank[col2]>rank[old]){k.dataset.c=col2;k.style.background=col2;k.style.color='#fff'}};
-  const press=ch=>{
-    if(over||id!==GM.id)return;
-    if(ch==='Backspace'){cur=cur.slice(0,-1);paint();return}
-    if(ch==='Enter'){
-      if(cur.length<5){msg.textContent='צריך 5 אותיות';return}
-      msg.textContent='';const res=Array(5).fill('#8a949a'),cnt={};
-      [...ans].forEach(c=>{cnt[c]=(cnt[c]||0)+1});
-      [...cur].forEach((c,i)=>{if(c===ans[i]){res[i]='#58cc02';cnt[c]--}});
-      [...cur].forEach((c,i)=>{if(res[i]!=='#58cc02'&&cnt[c]>0){res[i]='#ffc800';cnt[c]--}});
-      cells[r].forEach((x,i)=>{x.style.background=res[i];x.style.color='#fff';x.style.borderColor=res[i]});
-      [...cur].forEach((c,i)=>mark(c,res[i]));
-      if(cur===ans){over=true;msg.textContent='🎉 כל הכבוד! '+p.en+' = '+p.he;speak(p.en);gameDone(15);celebrate('🎉 ניחשתם!');box.append(again())}
-      else if(++r>=6){over=true;sfx('bad');msg.textContent='המילה הייתה: '+p.en+' = '+p.he;speak(p.en);gameDone(5);box.append(again())}
-      cur='';return;
-    }
-    if(cur.length<5&&/^[a-z]$/.test(ch)){cur+=ch;paint()}
-  };
-  const again=()=>{const b=el('button','p','שחק שוב');b.onclick=gWordle;return b};
-  ['qwertyuiop','asdfghjkl','zxcvbnm'].forEach(line=>{const kr=el('div');kr.style.cssText='display:flex;gap:4px;justify-content:center';[...line].forEach(ch=>{const b=el('button',null,ch);b.style.cssText='padding:8px 0;min-width:27px;text-transform:uppercase;font-size:15px;font-weight:700';b.onclick=()=>press(ch);keys[ch]=b;kr.append(b)});grid.append(kr)});
-  const act=el('div');act.style.cssText='display:flex;gap:8px;justify-content:center';
-  const en=el('button','p','בדיקה'),bs=el('button',null,'⌫');en.onclick=()=>press('Enter');bs.onclick=()=>press('Backspace');act.append(bs,en);
-  const kh=e=>{if(id!==GM.id){document.removeEventListener('keydown',kh);return}if(e.key==='Enter')press('Enter');else if(e.key==='Backspace')press('Backspace');else if(/^[a-zA-Z]$/.test(e.key))press(e.key.toLowerCase())};
-  document.addEventListener('keydown',kh);
-  box.append(el('div',null,'נחשו את המילה באנגלית (5 אותיות). רמז: '+p.he),grid,msg,act);openModal('ניחוש מילה',box);
 }
 function gScramble(){
   const id=++GM.id,items=pool(8,w=>/^[a-z]{3,10}$/i.test(w));let i=0,score=0;
@@ -1764,11 +1842,17 @@ async function gSpeed(){
 /* ---- conversation games ---- */
 const XG={
  q20:{icon:'❓',he:'20 שאלות',scen:'playing a 20 questions guessing game',
-  setup(){const w=CW[Math.floor(Math.random()*CW.length)][0];return {info:'חשבתי על מילה. שאלו שאלות של כן ולא באנגלית כדי לנחש אותה.',prompt:`\nGAME MODE: 20 QUESTIONS. The secret word is "${w}". Never reveal it before the end of the round. The student asks yes/no questions in English. Answer each with one very short sentence ("Yes, it is." / "No, it isn't." / "Sometimes."), say the question number each time ("That was question 3 of 20."), and give one small hint after question 10 if the student seems stuck. If the student guesses the word, celebrate. After 20 questions, or if the student gives up, reveal the word and say that a new round can be started from the games menu. Keep every reply to 1-2 short sentences.`}},
-  start:'(Start the game now: tell the student you are thinking of a common word, say that it is a thing, an animal or a food, and invite the student to ask the first yes/no question in English.)'},
+  setup(){const w=CW[Math.floor(Math.random()*CW.length)][0];return {info:'חשבתי על מילה. שאלו שאלות של כן ולא באנגלית כדי לנחש אותה.',prompt:`\nGAME MODE: 20 QUESTIONS. The secret word is "${w}". Never reveal it before the end of the round. Never state a category or any fact about the word on your own initiative. Before answering each question, check it carefully against what the word "${w}" really is (is it a food, an animal, an object, a place, big or small, alive, found at home, and so on) and answer truthfully and consistently with it for the whole game; never contradict an earlier answer. The student asks yes/no questions in English. Answer each with one very short sentence ("Yes, it is." / "No, it isn't." / "Sometimes."), say the question number each time ("That was question 3 of 20."), and give one small hint after question 10 if the student seems stuck. If the student guesses the word, celebrate. After 20 questions, or if the student gives up, reveal the word and say that a new round can be started from the games menu. Keep every reply to 1-2 short sentences.`}},
+  start:'(Start the game now: tell the student you are thinking of a common word. Do NOT say what kind of thing it is, do not give any category or hint yet. Invite the student to ask the first yes/no question in English.)'},
  ds:{icon:'🗣️',he:'תאר בלי להגיד',scen:'playing a describe-the-word guessing game',
   setup(){const p=pool(1)[0];return {word:p.en+' ('+p.he+')',info:'המילה שלכם: '+p.en+' ('+p.he+'). תארו אותה באנגלית בלי להגיד אותה, והמורה ינחש.',prompt:`\nGAME MODE: DESCRIBE WITHOUT SAYING. The student has a secret English word on their screen that you cannot see. The student describes it in English without saying the word, and you try to guess it: make one short guess per reply (for example "Is it a ...?") or ask one short clarifying question. When the student says you are right, celebrate in a few words and ask whether they want another word. Keep replies very short.`}},
   start:'(Start the game now: tell the student, in one short sentence, to describe their secret word without saying it, and ask for the first clue.)'},
+ q20r:{icon:'🧠',he:'20 שאלות: המורה מנחש',scen:'playing a reverse 20 questions game where the teacher guesses',
+  setup(){return {info:'חשבו על מילה (דבר, חיה או אוכל) ואל תגידו אותה. המורה ישאל עד 20 שאלות, ועונים Yes או No באנגלית.',prompt:`\nGAME MODE: REVERSE 20 QUESTIONS. The student secretly thinks of a common word (a thing, an animal or a food) and does NOT tell you. You ask one short yes/no question per reply to guess it, and number each question ("Question 1 of 20."). Start with broad questions and narrow down. Trust the student's answers; if two answers seem to contradict each other, kindly ask to check. You may guess ("Is it a ...?") when you are fairly sure. The student may answer in simple English or in Hebrew (yes/no); accept both. If you guess right, celebrate in a few words and offer another round. After 20 questions without success, say you give up and ask the student to tell the word in English. Use very simple words and keep every reply to 1-2 short sentences.`}},
+  start:'(Start the game now: in one short sentence, ask the student to think of a common word without telling you, and to say "ready" when they have one. Do not ask the first question yet.)'},
+ dsr:{icon:'🔎',he:'תאר בלי להגיד: המורה מתאר',scen:'playing a game where the teacher describes a word and the student guesses',
+  setup(){const p=pool(1)[0];return {info:'המורה יתאר מילה באנגלית בלי להגיד אותה. נחשו מהי, באנגלית.',prompt:`\nGAME MODE: DESCRIBE, STUDENT GUESSES. The secret word is "${p.en}" (Hebrew: ${p.he}). Describe it in very simple English, one short clue per reply, starting vague and getting clearer with each clue. NEVER say the word itself, any part of it, or its Hebrew translation. The student tries to guess it. If the guess is wrong, encourage the student and give the next clue. If the student guesses in Hebrew, gently ask for the English word. If the guess is right, celebrate in a few words and offer a new word. After 5 clues without success, reveal the word. Keep every reply to 1-2 short sentences.`}},
+  start:'(Start the game now: say in one short sentence that you will describe a word and the student should guess it, then give the first clue.)'},
  st:{icon:'📖',he:'שרשרת סיפור',scen:'building a funny story together, one sentence at a time',
   setup(){const w=sh(D.filter(x=>!x.hid).map(x=>x.en)).slice(0,6);return {info:'בונים סיפור ביחד, משפט כל אחד. נסו להשתמש במילים מהמילון.',prompt:`\nGAME MODE: STORY CHAIN. We build a funny short story together, one sentence at a time. You start with one sentence, then the student adds the next sentence, then you add one, and so on. Keep your sentences short and silly${w.length?' and try to include these words from the student\'s dictionary, inviting the student to use them too: '+w.join(', '):''}. Do not correct unless a sentence is hard to understand. After about 10 sentences in total, close the story with a fun ending.`}},
   start:'(Start the game now: say in one short sentence that we are building a story together, then give the first sentence of the story.)'},
@@ -1781,7 +1865,7 @@ const XG={
 };
 function startX(kind){
   if(!U)return;
-  if(L){st('סיימו קודם את השיעור הנוכחי');showView('lesson');return}
+  if(L)leaveLesson(true);
   if(!S.ak){openGen();return}
   const g=XG[kind],x=g.setup();
   GM.id++;$('md').classList.remove('show');showView('lesson');$('chat').innerHTML='';
@@ -1854,10 +1938,10 @@ const IS=[
      'המורה משלב את המילים שלכם בשיחה, כדי שתתרגלו אותן בפועל.',
      '<b>📖 מילון</b> נפתח בצד תוך כדי שיעור. אפשר לבחור כמה מילים יחד למחיקה, ולייצא לוורד, לטקסט או להדפסה.']},
  {i:'🎮',t:'מבחנים ומשחקים',
-  ill:'<div class="mk"><div class="chips"><span>🃏 משחק זיכרון</span><span>🔤 ניחוש מילה</span><span>🔀 אותיות</span><span>⚡ סיבוב מהיר</span><span>❓ 20 שאלות</span><span>🗣️ תאר בלי להגיד</span><span>📖 שרשרת סיפור</span><span>✅ נכון ולא נכון</span><span>🎯 משימה</span></div></div>',
+  ill:'<div class="mk"><div class="chips"><span>🃏 משחק זיכרון</span><span>🔀 אותיות</span><span>⚡ סיבוב מהיר</span><span>❓ 20 שאלות</span><span>🗣️ תאר בלי להגיד</span><span>📖 שרשרת סיפור</span><span>✅ נכון ולא נכון</span><span>🎯 משימה</span></div></div>',
   b:['<b>📝 מבחן מילים:</b> מבחן אמריקאי, או כתיבה (מאתגר יותר).',
      '<b>⚡ סיבוב מהיר:</b> מקבלים מילה בעברית ואומרים אותה באנגלית. המיקרופון נפתח לבד, ובסוף מקבלים כמה מילים הצלחתם לשלוף תוך 5, 7 ו-10 שניות.',
-     'משחקי שיחה עם המורה: 20 שאלות, תאר בלי להגיד, שרשרת סיפור, נכון ולא נכון ומשימות.']},
+     'משחקי שיחה עם המורה: 20 שאלות ותאר בלי להגיד (אפשר לבחור מי מנחש ומי מתאר), שרשרת סיפור, נכון ולא נכון ומשימות. לפני כל משחק יש הסבר וכפתור התחל.']},
  {i:'📎',t:'עזרה בלימודים',
   b:['<b>שינון מילים:</b> יש מבחן מחר? הקלידו, הדביקו או העלו צילום או PDF של רשימת המילים, בדקו אותה, והמורה יתרגל אתכם בקבוצות קטנות.',
      '<b>שיחה על קובץ:</b> העלו צילום, סריקה או PDF של דפים, ושוחחו עם המורה עליהם. אתם מכוונים אותו למה שצריך, והוא נותן בתחילה רק רמזים ולא מגלה מיד את התשובה.',
@@ -1866,7 +1950,7 @@ const IS=[
   ill:'<div class="mk"><b>יעד יומי: 6 / 10 דקות</b><div class="bar"><i style="width:60%"></i></div><div class="chips"><span>✓ 5 ימים ברצף</span><span>🏅 הישגים</span><span>📅 סיכום שבועי</span></div></div>',
   b:['<b>יעד יומי</b> בדקות (בהגדרות), <b>✓ ימים ברצף</b>, וסיכום שבועי.',
      'הרמה (A1–C2) מוערכת בלחיצה על <b>התקדמות</b>, ובעלייה ברמה יש חגיגה קטנה.',
-     'בסגנון העשיר יש נקודות ⭐ וחיית מחמד שגדלה. בסגנון המינימלי רק התקדמות והישגים.']},
+     'בסגנון העשיר יש נקודות ⭐, חיית מחמד שגדלה, ו<b>🐠 אקווריום</b>: אחרי שיעורים ומשחקים מקבלים אוכל לדגים, הם גדלים ומתרבים, ואם מפספסים ימי לימוד הם מתכווצים. בסגנון המינימלי רק התקדמות והישגים.']},
  {i:'⚙️',t:'הגדרות',
   b:['<b>רמה</b> (A1–C2) ו<b>רמת הדיבור של המורה</b> (1–5): כמה פשוט הוא ידבר.',
      'מבטא אמריקאי או בריטי, מהירות הקול, תרגום מתחת להודעות, והאם המורה יבין גם עברית.',
