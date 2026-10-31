@@ -1142,7 +1142,7 @@ function resumeLesson(id){
 {const g=$('gset'),sv=$('gsave');['ak','dk','micsel'].forEach(id=>g.insertBefore($(id).closest('label'),sv))}
 {const g=$('gset');g.prepend(el('h3',null,'הגדרות כלליות'));const x=el('button','cx','✕');x.setAttribute('aria-label','סגור');x.onclick=()=>g.classList.remove('open');g.prepend(x)}
 /* ---- version & updates ---- */
-const APP_VERSION='1.0.2',APP_DATE='25.10.2026',UPDATE_URL='';
+const APP_VERSION='1.0.3',APP_DATE='31.10.2026',UPDATE_URL='https://27levyam-png.github.io/english-tutor/version.json';
 $('ftx').innerHTML='© '+new Date().getFullYear()+' בצלאל. כל הזכויות שמורות<br>גרסה '+APP_VERSION+' · '+APP_DATE;
 function vNew(a,b){const x=String(a).split('.').map(Number),y=String(b).split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const p=x[i]||0,q=y[i]||0;if(p!==q)return p>q}return false}
 async function checkUpdate(silent){
