@@ -358,7 +358,7 @@ $('gear').onclick=()=>$('set').classList.toggle('open');
 $('endb').onclick=()=>endLesson();
 
 
-const API_BASE='';
+const API_BASE='https://english-tutor-api.27levyam.workers.dev';
 function apiBase(){return (S.api||API_BASE||'').replace(/\/+$/,'')}
 function dictWords(){
   if(!D.length||(L&&(L.type==='M'||L.type==='H'||L.type==='X')))return null;
@@ -1127,7 +1127,7 @@ function resumeLesson(id){
 {const g=$('gset'),sv=$('gsave');['ak','micsel'].forEach(id=>g.insertBefore($(id).closest('label'),sv))}
 {const g=$('gset');g.prepend(el('h3',null,'הגדרות כלליות'));const x=el('button','cx','✕');x.setAttribute('aria-label','סגור');x.onclick=()=>g.classList.remove('open');g.prepend(x)}
 /* ---- version & updates ---- */
-const APP_VERSION='1.1.0',APP_DATE='31.10.2026',UPDATE_URL='https://27levyam-png.github.io/english-tutor/version.json';
+const APP_VERSION='1.1.1',APP_DATE='31.10.2026',UPDATE_URL='https://27levyam-png.github.io/english-tutor/version.json';
 $('ftx').innerHTML='© '+new Date().getFullYear()+' בצלאל. כל הזכויות שמורות<br>גרסה '+APP_VERSION+' · '+APP_DATE;
 function vNew(a,b){const x=String(a).split('.').map(Number),y=String(b).split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const p=x[i]||0,q=y[i]||0;if(p!==q)return p>q}return false}
 async function checkUpdate(silent){
@@ -1227,11 +1227,26 @@ function renderHome(){
 var SP={q:[],busy:false,gen:0};
 const _cancel=speechSynthesis.cancel.bind(speechSynthesis);
 var curAudio=null;const AC={};
+async function ttsReq(t,m){
+  let r;
+  for(let i=0;i<3;i++){
+    r=await fetch(apiBase()+'/tts',{method:'POST',headers:{'X-Code':S.ak,'Content-Type':'application/json'},body:JSON.stringify({text:t.slice(0,1900),model:m})});
+    if(r.ok||(r.status<500&&r.status!==429))break;
+    await new Promise(x=>setTimeout(x,600*(i+1)));
+  }
+  if(!r.ok){let e='tts '+r.status;try{e=(await r.json()).error||e}catch(x){}st('הקול הטבעי לא זמין: '+e);throw new Error(e)}
+  return r;
+}
 function dgFetch(t){
   const m=dgVoice(),key=m+'|'+t;
   if(AC[key])return Promise.resolve(AC[key]);
-  return fetch(apiBase()+'/tts',{method:'POST',headers:{'X-Code':S.ak,'Content-Type':'application/json'},body:JSON.stringify({text:t.slice(0,1900),model:m})})
-    .then(async r=>{if(!r.ok)throw new Error('tts '+r.status);return AC[key]=URL.createObjectURL(await r.blob())});
+  return ttsReq(t,m).then(async r=>AC[key]=URL.createObjectURL(await r.blob()));
+}
+function pickVoice(L){
+  const all=speechSynthesis.getVoices(),vs=all.filter(v=>v.lang.replace('_','-')===L);
+  const fem=U&&U.g==='f',gr=fem?/female|zira|hazel|aria|jenny|susan|libby|sonia|eva|catherine|samantha/i:/david|mark|george|guy|ryan|thomas|alfie|james|\bmale\b/i;
+  const gv=vs.filter(v=>gr.test(v.name)&&(fem||!/female/i.test(v.name)));
+  return gv.find(v=>/natural|online|google/i.test(v.name))||gv[0]||vs.find(v=>/natural|online|google/i.test(v.name))||vs[0]||null;
 }
 function spSay(sentence){
   const t=sentence.trim();
@@ -1251,7 +1266,7 @@ async function spPump(){
       await new Promise((res,rej)=>{const a=new Audio(url);curAudio=a;a.playbackRate=Math.max(.5,Math.min(1.5,(S.rate||.9)/.9));a.onended=res;a.onerror=rej;a.play().catch(rej)});
     }catch(e){
       if(g!==SP.gen)return;
-      await new Promise(res=>{const u=new SpeechSynthesisUtterance(it.t);u.lang=S.acc==='gb'?'en-GB':'en-US';u.rate=S.rate||.9;u.pitch=/\?/.test(it.t)?1.2:/!/.test(it.t)?1.2:1;u.onend=res;u.onerror=res;speechSynthesis.speak(u)});
+      await new Promise(res=>{const u=new SpeechSynthesisUtterance(it.t);u.lang=S.acc==='gb'?'en-GB':'en-US';{const v=pickVoice(u.lang);if(v)u.voice=v}u.rate=S.rate||.9;u.pitch=/\?/.test(it.t)?1.2:/!/.test(it.t)?1.2:1;u.onend=res;u.onerror=res;speechSynthesis.speak(u)});
     }
   }
   if(g===SP.gen)SP.busy=false;
@@ -1262,8 +1277,7 @@ function dgVoice(){const f=U&&U.g==='f';return S.acc==='gb'?(f?'aura-2-pandora-e
 async function speakDG(t){
   const m=dgVoice(),key=m+'|'+t;let url=AC[key];
   if(!url){
-    const r=await fetch(apiBase()+'/tts',{method:'POST',headers:{'X-Code':S.ak,'Content-Type':'application/json'},body:JSON.stringify({text:t.slice(0,1900),model:m})});
-    if(!r.ok)throw new Error('tts '+r.status);
+    const r=await ttsReq(t,m);
     url=AC[key]=URL.createObjectURL(await r.blob());
   }
   speechSynthesis.cancel();
