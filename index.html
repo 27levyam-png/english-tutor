@@ -32,6 +32,8 @@ button.p{background:var(--ac);color:#fff;border-color:var(--ac)}
 .empty{margin:auto;text-align:center;color:var(--mut);max-width:420px}
 #st{min-height:22px;padding:0 16px;font-size:14px;color:var(--mut)}
 footer{display:flex;gap:8px;padding:10px 16px 16px}
+.trr{display:block;margin-top:6px;font-size:13px;padding:4px 10px;min-height:0}
+#redo{font-size:13px;padding:6px 10px;white-space:nowrap}
 #mic{min-width:130px}
 #mic.rec{background:#c0392b;border-color:#c0392b;color:#fff}
 #set{max-height:50vh;overflow-y:auto}
@@ -317,6 +319,7 @@ body.tpo #tpb{display:none!important}
 <div id="meter"><i id="bar"></i></div>
 <footer>
   <button id="mic" class="p">🎤 לחץ ודבר</button>
+  <button id="redo" title="המחשב לא הבין נכון? מוחקים את ההודעה האחרונה ואומרים שוב">↩ לא הבנת נכון?</button>
   <input id="txt" dir="auto" placeholder="או הקלידו באנגלית ולחצו Enter">
 </footer>
 </div>
@@ -436,9 +439,10 @@ function speakBasic(text){
   speechSynthesis.speak(u);
 }
 function lg(role,content){if(L&&L.log&&!L.ending){L.log.push({role,content});if(L.log.length>70)L.log.shift()}}
+var ABORT=0;
 async function ask(text,hidden,extra){
   if(!S.ak){openGen();st('חסר קוד כניסה בהגדרות');return}
-  history.push({role:'user',content:text+(extra||''),nt:S.gloss==='click'});const myL=L;lg('user',text+(extra||''));
+  history.push({role:'user',content:text+(extra||''),nt:S.gloss==='click'});const myL=L,myA=ABORT;lg('user',text+(extra||''));
   if(!hidden){add('me',text);countUse(text);markToday();trackTime()}
   st('המורה חושב...');ASKB=true;
   speechSynthesis.cancel();
@@ -446,7 +450,7 @@ async function ask(text,hidden,extra){
   try{
     bub=addAI('',null);
     await aiStream(chatP(),ctxMsgs(),900,d=>{
-      if(myL!==L)throw new Error('aborted');
+      if(myL!==L||myA!==ABORT)throw new Error('aborted');
       if(!full)st('');
       full+=d;buf+=d;
       fillP(bub._p,full.replace(/\[\[END\]?\]?/g,'').trim(),null);$('chat').scrollTop=1e9;
@@ -459,7 +463,7 @@ async function ask(text,hidden,extra){
     if(buf.trim())spSay(buf.replace(/\[\[END\]\]/g,''));
     const reply=full.replace(/\[\[END\]\]/g,'').trim();
     if(!reply)throw new Error('תשובה ריקה');
-    if(myL!==L)throw new Error('aborted');
+    if(myL!==L||myA!==ABORT)throw new Error('aborted');
     history.push({role:'assistant',content:reply});persist();lg('assistant',reply);if(L&&L.ending)L.sum=reply;
     const sk=bub.querySelector('.spk');if(sk)sk.onclick=()=>speak(reply);
     st('');glossFor(reply,bub);try{afterAsk()}catch(e){}
@@ -469,6 +473,22 @@ async function ask(text,hidden,extra){
     if(e.message==='aborted')st('');else st('שגיאה: '+e.message);
   }finally{ASKB=false}
 }
+async function redoLast(){
+  if(!U||!L){st('אין מה לחזור עליו');return}
+  if(rec&&rec.state==='recording')return;
+  const wasBusy=ASKB;ABORT++;speechSynthesis.cancel();
+  for(let i=0;i<40&&ASKB;i++)await new Promise(r=>setTimeout(r,50));
+  const mes=[...$('chat').querySelectorAll('.m.me')],last=mes[mes.length-1];
+  if(!last){st('אין מה לבטל');return}
+  if(!wasBusy){
+    let k=-1;for(let i=history.length-1;i>=0;i--){const m=history[i];if(m.role==='user'&&!m.content.startsWith('(')){k=i;break}}
+    if(k>=0){history.splice(k);persist()}
+    if(L&&L.log)for(let i=L.log.length-1;i>=0;i--){const m=L.log[i];if(m.role==='user'&&!m.content.startsWith('(')){L.log.splice(i);break}}
+  }
+  const rm=[];for(let n=last;n;n=n.nextElementSibling)rm.push(n);rm.forEach(x=>x.remove());
+  st('בסדר, נסו שוב');$('mic').click();
+}
+$('redo').onclick=redoLast;
 $('start').onclick=startConv;
 $('txt').onkeydown=e=>{if(e.key==='Enter'&&$('txt').value.trim()){const t=$('txt').value.trim();$('txt').value='';ask(t)}};
 
@@ -653,17 +673,30 @@ function renderGloss(bub,g){
   g.forEach(x=>{if(!Array.isArray(x)||!x[0])return;const c=document.createElement('span');c.className='gc';const b=document.createElement('b');b.textContent=x[0];c.append(b,document.createTextNode(clean(String(x[1]||''))));gl.append(c)});
   if(gl.children.length){bub.append(gl);$('chat').scrollTop=1e9}
 }
+const withTO=(p,ms)=>Promise.race([p,new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),ms))]);
 async function glossFor(text,bub){
   if(S.gloss!=='full'||!S.ak)return;
-  const en=text.split('\n').filter(l=>!/[\u0590-\u05FF]/.test(l)).join(' ').trim();
+  const en=text.split('\n').filter(l=>!/[֐-׿]/.test(l)).join(' ').trim();
   if(!en)return;
-  try{
-    const out=await ai('he',{},[{role:'user',content:'<text>'+en+'</text>'}],500);
-    const mm=out.match(/<he>([\s\S]*?)<\/he>/),he=(mm?mm[1]:out).split('\n').map(x=>x.trim()).filter(x=>/[\u0590-\u05FF]/.test(x)).join('\n');
-    if(!he)return;
-    const d=document.createElement('div');d.className='he';d.dir='rtl';d.textContent=he;
-    bub.append(d);$('chat').scrollTop=1e9;
-  }catch(e){}
+  const old=bub.querySelector('.trr');if(old)old.remove();
+  let ok=false;
+  for(let i=0;i<2&&!ok;i++){
+    try{
+      const out=await withTO(ai('he',{},[{role:'user',content:'<text>'+en+'</text>'}],500),15000);
+      const mm=out.match(/<he>([\s\S]*?)<\/he>/),he=(mm?mm[1]:out).split('\n').map(x=>x.trim()).filter(x=>/[֐-׿]/.test(x)).join('\n');
+      if(he){
+        bub.querySelectorAll('.he').forEach(x=>x.remove());
+        const d=document.createElement('div');d.className='he';d.dir='rtl';d.textContent=he;
+        bub.append(d);$('chat').scrollTop=1e9;ok=true;
+      }
+    }catch(e){}
+    if(!ok&&i===0)await new Promise(r=>setTimeout(r,1200));
+  }
+  if(!ok&&bub.isConnected){
+    const b=document.createElement('button');b.className='trr';b.textContent='🔄 רענון תרגום';
+    b.onclick=()=>{b.textContent='מתרגם...';b.disabled=true;glossFor(text,bub)};
+    bub.append(b);$('chat').scrollTop=1e9;
+  }
 }
 $('pa').onclick=()=>{
   if(!cur||D.some(x=>x.en.toLowerCase()===cur))return;
@@ -1131,7 +1164,7 @@ function resumeLesson(id){
 {const g=$('gset'),sv=$('gsave');['ak','micsel'].forEach(id=>g.insertBefore($(id).closest('label'),sv))}
 {const g=$('gset');g.prepend(el('h3',null,'הגדרות כלליות'));const x=el('button','cx','✕');x.setAttribute('aria-label','סגור');x.onclick=()=>g.classList.remove('open');g.prepend(x)}
 /* ---- version & updates ---- */
-const APP_VERSION='1.2.1',APP_DATE='03.11.2026',UPDATE_URL='https://27levyam-png.github.io/english-tutor/version.json';
+const APP_VERSION='1.2.4',APP_DATE='03.11.2026',UPDATE_URL='https://27levyam-png.github.io/english-tutor/version.json';
 $('ftx').innerHTML='© '+new Date().getFullYear()+' בצלאל. כל הזכויות שמורות<br>גרסה '+APP_VERSION+' · '+APP_DATE;
 function vNew(a,b){const x=String(a).split('.').map(Number),y=String(b).split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const p=x[i]||0,q=y[i]||0;if(p!==q)return p>q}return false}
 async function checkUpdate(silent){
@@ -1253,11 +1286,12 @@ function pickVoice(L){
   const gv=vs.filter(v=>gr.test(v.name)&&(fem||!/female/i.test(v.name)));
   return gv.find(v=>/natural|online|google/i.test(v.name))||gv[0]||vs.find(v=>/natural|online|google/i.test(v.name))||vs[0]||null;
 }
+const HE_M=/asaf|david|\bmale\b|גבר/i,HE_F=/hila|female|noa|shira|אישה/i;
 function heVoice(){
   const vs=speechSynthesis.getVoices().filter(v=>/^he([-_]|$)/i.test(v.lang)||/hebrew|עברית/i.test(v.name));
   if(!vs.length)return null;
-  const fem=U&&U.g==='f',pref=fem?/hila|female|noa|shira/i:/asaf|male|david/i;
-  return vs.find(v=>pref.test(v.name)&&(fem||!/female/i.test(v.name)))||vs.find(v=>/online|natural|google/i.test(v.name))||vs[0];
+  if(U&&U.g==='f')return vs.find(v=>HE_F.test(v.name))||vs.find(v=>!HE_M.test(v.name)&&/online|natural|google/i.test(v.name))||vs.find(v=>!HE_M.test(v.name))||vs[0];
+  return vs.find(v=>HE_M.test(v.name)&&!HE_F.test(v.name))||vs.find(v=>!HE_F.test(v.name)&&/online|natural|google/i.test(v.name))||vs.find(v=>!HE_F.test(v.name))||vs[0];
 }
 var NOHE=0;
 function spEn(t){
@@ -1289,7 +1323,7 @@ async function spPump(){
   while(SP.q.length&&g===SP.gen){
     const it=SP.q.shift();
     if(it.he){
-      await new Promise(res=>{const u=new SpeechSynthesisUtterance(it.t);u.lang='he-IL';const v=heVoice();if(v)try{u.voice=v}catch(e){}u.rate=Math.min(1.2,S.rate||.9);u.onend=res;u.onerror=res;speechSynthesis.speak(u)});
+      await new Promise(res=>{const u=new SpeechSynthesisUtterance(it.t);u.lang='he-IL';const v=heVoice();if(v)try{u.voice=v}catch(e){}if(v&&U&&U.g==='f'&&HE_M.test(v.name))u.pitch=1.4;u.rate=Math.min(1.2,S.rate||.9);u.onend=res;u.onerror=res;speechSynthesis.speak(u)});
       continue;
     }
     try{
@@ -1422,13 +1456,14 @@ $('tpin').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();tpGo
 $('tprec').onclick=()=>tpRec('he',$('tprec'),tx=>{if(!tx){st('לא זוהה דיבור, נסו שוב');return}$('tpin').value=tx;tpGo()});
 
 /* ---- memorization & homework help ---- */
+var openReading;
 function openHelp(){
   if(!U)return;
   if(L)leaveLesson(true);
   const box=col();
-  const a=el('button','p','🎯 שינון מילים: הקלדת רשימת מילים'),b=el('button','p','📄 שיחה על קובץ או דפים: צילום, סריקה או PDF');
-  a.onclick=openWords;b.onclick=openFileHelp;
-  box.append(el('div',null,'במה תרצו עזרה?'),a,b);
+  const a=el('button','p','🎯 שינון מילים: הקלדת רשימת מילים'),b=el('button','p','📄 שיחה על קובץ או דפים: צילום, סריקה או PDF'),c=el('button','p','📖 עזרה בקריאה: סיפור מצולם, קריאה בקול ושאלות');
+  a.onclick=openWords;b.onclick=openFileHelp;c.onclick=()=>openReading();
+  box.append(el('div',null,'במה תרצו עזרה?'),a,b,c);
   openModal('עזרה בלימודים',box);
 }
 const taCss='background:var(--bg);border:2px solid var(--line);border-radius:12px;padding:10px;font:inherit;color:var(--tx);width:100%';
@@ -1515,6 +1550,199 @@ function beginH(hw,note){
   add('sum','📝 '+lessonLabel()+'\n\n'+hw.slice(0,700)+(hw.length>700?'\n...':''));updateLbar();
   ask('(CUE:hstart|'+(note||'')+')',true);
 }
+
+
+/* ---- reading help ---- */
+(function(){
+const RS='#md .lb.wide{max-width:900px}.rw{cursor:pointer;border-radius:5px;padding:0 1px}.rw:hover{background:rgba(120,120,255,.15)}.rw.bad{background:rgba(255,80,80,.18)}.rw.ok{background:rgba(60,180,90,.20)}.rw.sel{outline:2px solid var(--ac,#6c6cff)}.rblk{font-size:20px;line-height:2;direction:ltr;text-align:left;padding:8px 4px}.rinfo{position:sticky;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;min-height:44px}.ropt{text-align:left;direction:ltr}.ropt.good{background:rgba(60,180,90,.25)}.ropt.badc{background:rgba(255,80,80,.2)}';
+const stl=document.createElement('style');stl.textContent=RS;document.head.append(stl);
+const oM=openModal;openModal=function(t,n){const lb=$('md').querySelector('.lb');if(lb)lb.classList.remove('wide');oM(t,n)};
+const wide=()=>{const lb=$('md').querySelector('.lb');if(lb)lb.classList.add('wide')};
+const norm=w=>w.toLowerCase().replace(/[’`]/g,"'").replace(/[^a-z']/g,'').replace(/^'+|'+$/g,'');
+let R=null;
+openReading=function(){
+  const box=col();
+  const ex=el('div',null,'איך זה עובד?\n\n1. מעלים צילום או סריקה של סיפור (מספר לימוד או כל דף אחר).\n2. המחשב מתמלל רק את הסיפור ומציג אותו מסודר לפי הקטעים.\n3. קוראים בשקט, או לוחצים על 🎤 וקוראים בקול: המחשב מקשיב ומסמן ברקע אדום עדין מילה שלא נקראה נכון.\n4. לחיצה על מילה משמיעה את ההגייה הנכונה ומראה תרגום של אותה מילה לפי הקשר הסיפור.\n5. אחרי הסיפור קוראים את השאלות, ובוחרים את התשובה הנכונה מתוך 4.\n6. בסוף מקבלים סיכום, עידוד והדגשה של המילים שנקראו יפה.');
+  ex.style.whiteSpace='pre-line';
+  const ok=el('button','p','הבנתי, ממשיכים');
+  ok.onclick=readUpload;
+  box.append(ex,ok);openModal('עזרה בקריאה',box);
+};
+function readUpload(){
+  const box=col(),fi=el('input');fi.type='file';fi.accept='image/*,application/pdf';fi.multiple=true;
+  const msg=el('small',null,''),go=el('button','p','תמלל את הסיפור');
+  go.onclick=async()=>{
+    const files=[...fi.files];
+    if(!S.ak){openGen();return}
+    if(!files.length){msg.textContent='העלו צילום או PDF של הסיפור';return}
+    if(files.length>6){msg.textContent='אפשר עד 6 קבצים';return}
+    go.disabled=true;msg.textContent='קורא את הסיפור... זה יכול לקחת כמה שניות';
+    try{
+      const mk=async mx=>{const b=[];for(const f of files)b.push(await fileBlock(f,mx));return [...b,{type:'text',text:'Transcribe the story and its questions as instructed.'}]};
+      let out;
+      try{out=await ai('story',{},[{role:'user',content:await mk(1600)}],3900)}
+      catch(e){if(!/fetch|network/i.test(e.message))throw e;msg.textContent='החיבור נכשל, מנסה שוב עם תמונה קטנה יותר...';await new Promise(r=>setTimeout(r,1200));out=await ai('story',{},[{role:'user',content:await mk(1000)}],3900)}
+      const m=out.match(/\{[\s\S]*\}/);if(!m)throw new Error('לא נמצא סיפור בחומר');
+      const j=JSON.parse(m[0]);
+      const secs=(j.sections||[]).filter(s=>s&&String(s.text||'').trim().length>2).map(s=>({h:String(s.h||'').trim(),text:String(s.text).trim()}));
+      if(!secs.length)throw new Error('לא נמצא סיפור בחומר');
+      startRead({title:String(j.title||'').trim(),secs,qs:(j.questions||[]).map(String).filter(q=>q.trim()).slice(0,12)});
+    }catch(e){msg.textContent='שגיאה: '+e.message;go.disabled=false}
+  };
+  box.append(el('div',null,'העלו צילום, סריקה (PDF) או כמה תמונות של הסיפור. אפשר לצרף גם את השאלות שאחריו.'),fi,msg,go);
+  openModal('העלאת סיפור',box);
+}
+function startRead(d){
+  R={d,id:Date.now(),st:{},qi:0,qN:0,qOk:0,rec:null,t0:Date.now(),blocks:0};
+  R.story=d.secs.map(s=>s.text).join('\n');
+  showStory();
+}
+function mkBlock(text,key){
+  const wrap=el('div'),p=el('div','rblk');p.dir='ltr';
+  const words=[];
+  text.split(/(\s+)/).forEach(tok=>{
+    if(!tok)return;
+    if(/^\s+$/.test(tok)){p.append(document.createTextNode(tok));return}
+    const n=norm(tok),s=el('span','rw',tok);
+    if(n){const id=key+':'+words.length;s.dataset.id=id;words.push({n,s,id});
+      if(R.st[id])s.classList.add(R.st[id]);
+      s.onclick=()=>wordClick(n,tok,text,s)}
+    p.append(s);
+  });
+  const bar=el('div');bar.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap';
+  const mic=el('button',null,'🎤 קריאה בקול'),st=el('small',null,'');
+  mic.onclick=()=>readAloud(words,mic,st);
+  bar.append(mic,st);wrap.append(p,bar);return wrap;
+}
+function infoBar(){
+  let b=document.getElementById('rinfo');
+  if(!b){b=el('div','rinfo');b.id='rinfo';b.textContent='לחצו על מילה לשמוע ולראות תרגום';}
+  return b;
+}
+async function wordClick(n,tok,ctx,span){
+  document.querySelectorAll('.rw.sel').forEach(x=>x.classList.remove('sel'));span.classList.add('sel');
+  speak(n);
+  const b=document.getElementById('rinfo');if(!b)return;
+  const k='rd|'+n+'|'+ctx.slice(0,40);
+  b.replaceChildren(el('b',null,n),el('span',null,'...'));
+  try{
+    if(!tc[k])tc[k]=clean(await ai('wd',{},[{role:'user',content:`Sentence: "${ctx.slice(0,400)}"\nWord: "${n}"`}],60));
+    const tr=el('span',null,'= '+tc[k]);tr.style.fontSize='18px';tr.dir='rtl';
+    const ad=el('button',null,'＋ למילון');
+    ad.onclick=()=>{if(!D.some(d=>d.en.toLowerCase()===n))D.push({en:n,he:tc[k],n:0});saveD();drawD();ad.textContent='✓ נוסף';ad.disabled=true};
+    const pl=el('button',null,'🔊');pl.onclick=()=>speak(n);
+    b.replaceChildren(el('b',null,n),pl,tr,ad);
+  }catch(e){b.replaceChildren(el('b',null,n),el('span',null,'לא הצלחתי לתרגם: '+e.message))}
+}
+async function readAloud(words,mic,st){
+  if(R.rec&&R.rec.state==='recording'){R.rec.stop();return}
+  if(!S.ak){openGen();return}
+  if(typeof rec!=='undefined'&&rec&&rec.state==='recording'){st.textContent='סיימו קודם את ההקלטה הראשית';return}
+  speechSynthesis.cancel();
+  let s;try{s=await getStream()}catch(e){st.textContent='אין גישה למיקרופון ('+e.name+')';return}
+  const mt='audio/webm;codecs=opus',r=new MediaRecorder(s,MediaRecorder.isTypeSupported(mt)?{mimeType:mt}:{}),ch=[];
+  R.rec=r;const id=R.id;
+  r.ondataavailable=e=>e.data.size&&ch.push(e.data);
+  r.onstop=async()=>{
+    mic.textContent='🎤 קריאה בקול';
+    if(!R||R.id!==id)return;
+    st.textContent='בודק את הקריאה...';
+    try{
+      const type=r.mimeType.split(';')[0];
+      const rs=await fetch(apiBase()+'/stt?lang=en&raw=1',{method:'POST',headers:{'X-Code':S.ak,'Content-Type':type},body:new Blob(ch,{type})});
+      const j=await rs.json();if(!rs.ok)throw new Error(j.error||j.err_msg||rs.status);
+      const hw=((j.results&&j.results.channels[0].alternatives[0].words)||[]).map(w=>({n:norm(w.word||''),c:w.confidence==null?1:w.confidence})).filter(w=>w.n);
+      if(!hw.length){st.textContent='לא שמעתי קריאה. נסו שוב קרוב יותר למיקרופון';return}
+      const res=align(words.map(w=>w.n),hw);
+      let ok=0,bad=0;
+      words.forEach((w,i)=>{
+        w.s.classList.remove('ok','bad');
+        if(res[i]===true){R.st[w.id]='ok';ok++}else{R.st[w.id]='bad';bad++}
+        w.s.classList.add(R.st[w.id]);
+      });
+      st.textContent=bad?'נקראו נכון '+ok+' מילים. המילים באדום לחצו לשמוע.':'🎉 קריאה מצוינת!';
+    }catch(e){st.textContent='שגיאה: '+e.message}
+  };
+  r.start();mic.textContent='⏹ סיימתי לקרוא';st.textContent='🎤 מקשיבים... קראו בקול, ולחצו כשסיימתם';
+}
+function align(exp,hw){
+  const m=exp.length,n=hw.length,eq=(a,b)=>a===b||(a.length>=6&&b.length>=6&&lev(a,b)<=1);
+  const d=Array.from({length:m+1},()=>Array(n+1).fill(0));
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=eq(exp[i-1],hw[j-1].n)?d[i-1][j-1]+1:Math.max(d[i-1][j],d[i][j-1]);
+  const out=Array(m).fill(false);let i=m,j=n;
+  while(i>0&&j>0){
+    if(eq(exp[i-1],hw[j-1].n)&&d[i][j]===d[i-1][j-1]+1){out[i-1]=hw[j-1].c>=0.45;i--;j--}
+    else if(d[i-1][j]>=d[i][j-1])i--;else j--;
+  }
+  return out;
+}
+function showStory(){
+  const box=col();
+  if(R.d.title){const t=el('h3',null,R.d.title);t.dir='ltr';t.style.margin='0';box.append(t)}
+  R.d.secs.forEach((s,i)=>{
+    if(s.h){const h=el('b',null,s.h);h.dir='ltr';box.append(h)}
+    box.append(mkBlock(s.text,'s'+i));
+  });
+  const go=el('button','p',R.d.qs.length?'סיימתי לקרוא, למעבר לשאלות':'סיימתי לקרוא');
+  go.onclick=()=>{if(R.rec&&R.rec.state==='recording')R.rec.stop();R.d.qs.length?showQ():finish()};
+  box.append(go,infoBar());
+  openModal('קריאת הסיפור',box);wide();
+}
+function showQ(){
+  const q=R.d.qs[R.qi];const box=col();
+  box.append(el('small',null,'שאלה '+(R.qi+1)+' מתוך '+R.d.qs.length));
+  box.append(mkBlock(q,'q'+R.qi));
+  const area=el('div');area.style.cssText='display:flex;flex-direction:column;gap:8px';
+  const go=el('button','p','סיימתי לקרוא את השאלה, הציגו תשובות');
+  go.onclick=async()=>{
+    if(R.rec&&R.rec.state==='recording')R.rec.stop();
+    go.disabled=true;go.textContent='מכין תשובות...';
+    try{
+      const out=await ai('qopts',{story:R.story,q},[{role:'user',content:'go'}],700);
+      const j=JSON.parse(out.match(/\{[\s\S]*\}/)[0]);
+      const opts=(j.options||[]).map(String).slice(0,4);if(opts.length<2)throw new Error('אין תשובות');
+      const ans=Math.min(Math.max(+j.answer||0,0),opts.length-1);
+      const order=sh(opts.map((t,i)=>({t,c:i===ans})));
+      go.remove();
+      if(j.he){const h=el('small',null,j.he);h.dir='rtl';area.append(h)}
+      order.forEach(o=>{
+        const b=el('button','ropt',o.t);b.dir='ltr';
+        b.onclick=()=>{
+          area.querySelectorAll('.ropt').forEach(x=>x.disabled=true);
+          R.qN++;if(o.c){R.qOk++;b.classList.add('good')}else{b.classList.add('badc');order.forEach((p,i)=>{if(p.c)area.querySelectorAll('.ropt')[i].classList.add('good')})}
+          const nx=el('button','p',R.qi+1<R.d.qs.length?'לשאלה הבאה':'לסיכום');
+          nx.onclick=()=>{R.qi++;R.qi<R.d.qs.length?showQ():finish()};
+          area.append(el('div',null,o.c?'כל הכבוד! תשובה נכונה 👏':'כמעט. התשובה הנכונה מסומנת בירוק.'),nx);
+          speak(o.c?'Great job!':'Almost. Look at the green answer.');
+        };
+        area.append(b);
+      });
+    }catch(e){go.disabled=false;go.textContent='נסו שוב: '+e.message}
+  };
+  box.append(go,area,infoBar());
+  openModal('שאלות על הסיפור',box);wide();
+}
+async function finish(){
+  const all=[];
+  R.d.secs.forEach((s,i)=>{let k=0;s.text.split(/\s+/).forEach(t=>{const n=norm(t);if(n){all.push({n,st:R.st['s'+i+':'+k]||null});k++}})});
+  const read=all.filter(w=>w.st),good=[...new Set(read.filter(w=>w.st==='ok'&&w.n.length>3).map(w=>w.n))],bad=[...new Set(read.filter(w=>w.st==='bad').map(w=>w.n))];
+  const rec={t:Date.now(),n:read.length,ok:read.filter(w=>w.st==='ok').length,qN:R.qN,qOk:R.qOk,bad:bad.slice(0,20)};
+  U.reads=U.reads||[];const prev=U.reads.length?U.reads[U.reads.length-1]:null;
+  U.reads.push(rec);U.reads=U.reads.slice(-30);saveU();markToday();addXP(15);trackTime();
+  const box=col();box.append(el('h3',null,'סיכום שיעור הקריאה'));
+  const sm=el('div',null,'מילים שנקראו בקול: '+rec.n+'. נקראו נכון: '+rec.ok+(rec.qN?'. שאלות נכונות: '+rec.qOk+' מתוך '+rec.qN:'')+'.');box.append(sm);
+  const msg=el('div',null,'מכין עידוד...');msg.style.cssText='font-size:18px';msg.dir='rtl';box.append(msg);
+  R.d.secs.forEach((s,i)=>box.append(mkBlock(s.text,'s'+i)));
+  const cl=el('button','p','סיום');cl.onclick=()=>{$('md').classList.remove('show')};
+  box.append(cl,infoBar());openModal('כל הכבוד!',box);wide();
+  box.querySelectorAll('.rblk+div').forEach(d=>d.remove());
+  try{
+    const out=await ai('rsum',{good:good.slice(0,8),bad:bad.slice(0,6),n:rec.n,ok:rec.ok,qN:rec.qN,qOk:rec.qOk,prev:prev&&prev.n?prev:null},[{role:'user',content:'go'}],700);
+    const j=JSON.parse(out.match(/\{[\s\S]*\}/)[0]);
+    msg.textContent=j.he||'כל הכבוד על הקריאה!';if(j.en)speak(j.en);
+  }catch(e){msg.textContent=rec.n&&rec.ok/rec.n>.7?'כל הכבוד! קראתם יפה מאוד.':'כל הכבוד על המאמץ! כל קריאה מקדמת אתכם.'}
+}
+})();
 
 /* ---- v2: goals, rewards, games, writing quiz ---- */
 const LVS=['A1','A2','B1','B2','C1','C2'];
@@ -1632,13 +1860,14 @@ const CW=[['apple','תפוח'],['bread','לחם'],['water','מים'],['house','�
 const W5=[['happy','שמח'],['green','ירוק'],['small','קטן'],['night','לילה'],['light','אור'],['story','סיפור'],['world','עולם'],['mouth','פה'],['plant','צמח'],['smile','חיוך'],['sleep','לישון'],['dream','חלום'],['clean','נקי'],['early','מוקדם'],['fresh','טרי']];
 const nz=x=>String(x).toLowerCase().replace(/[^a-z0-9' ]/g,' ').replace(/\s+/g,' ').trim();
 function lev(a,b){const m=a.length,n=b.length,d=Array.from({length:m+1},(_,i)=>{const r=Array(n+1).fill(0);r[0]=i;return r});for(let j=1;j<=n;j++)d[0][j]=j;for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[m][n]}
+const W6=('cat=חתול,dog=כלב,sun=שמש,hat=כובע,cup=כוס,bed=מיטה,box=קופסה,egg=ביצה,pen=עט,bag=תיק,car=מכונית,bus=אוטובוס,key=מפתח,map=מפה,cow=פרה,hen=תרנגולת,fox=שועל,bee=דבורה,ant=נמלה,ice=קרח,tea=תה,jam=ריבה,day=יום,sky=שמיים,sea=ים,red=אדום,big=גדול,old=ישן,new=חדש,hot=חם,wet=רטוב,run=לרוץ,sit=לשבת,eat=לאכול,see=לראות,buy=לקנות,fan=מאוורר,pan=מחבת,toy=צעצוע,leg=רגל,arm=זרוע,eye=עין,ear=אוזן,lip=שפה,boy=ילד,man=גבר,son=בן,mom=אמא,dad=אבא,yes=כן,one=אחד,two=שניים,six=שש,ten=עשר,book=ספר,door=דלת,tree=עץ,fish=דג,milk=חלב,rice=אורז,bird=ציפור,frog=צפרדע,duck=ברווז,hand=יד,foot=כף רגל,head=ראש,nose=אף,mouth=פה,face=פנים,moon=ירח,star=כוכב,rain=גשם,snow=שלג,wind=רוח,fire=אש,wall=קיר,road=דרך,ring=טבעת,shoe=נעל,sock=גרב,coat=מעיל,desk=שולחן כתיבה,lamp=מנורה,bell=פעמון,king=מלך,farm=חווה,baby=תינוק,girl=ילדה,food=אוכל,cake=עוגה,soup=מרק,salt=מלח,corn=תירס,bean=שעועית,pear=אגס,plum=שזיף,rose=ורד,leaf=עלה,lake=אגם,hill=גבעה,city=עיר,town=עיירה,park=פארק,shop=חנות,bank=בנק,ball=כדור,game=משחק,song=שיר,word=מילה,name=שם,home=בית,room=חדר,time=זמן,year=שנה,week=שבוע,hour=שעה,blue=כחול,pink=ורוד,gray=אפור,cold=קר,warm=חם,soft=רך,fast=מהיר,slow=איטי,open=לפתוח,walk=ללכת,jump=לקפוץ,swim=לשחות,read=לקרוא,sing=לשיר,play=לשחק,cook=לבשל,wash=לרחוץ,help=לעזור,love=אהבה,work=עבודה,apple=תפוח,bread=לחם,water=מים,house=בית,chair=כיסא,table=שולחן,clock=שעון,phone=טלפון,pizza=פיצה,lemon=לימון,grape=ענב,onion=בצל,tomato=עגבנייה,potato=תפוח אדמה,carrot=גזר,cheese=גבינה,butter=חמאה,juice=מיץ,candy=ממתק,honey=דבש,sugar=סוכר,spoon=כף,knife=סכין,plate=צלחת,fork=מזלג,bottle=בקבוק,pencil=עיפרון,paper=נייר,school=בית ספר,teacher=מורה,friend=חבר,family=משפחה,mother=אמא,father=אבא,sister=אחות,brother=אח,doctor=רופא,garden=גן,flower=פרח,mouse=עכבר,horse=סוס,sheep=כבשה,tiger=נמר,lion=אריה,camel=גמל,snake=נחש,bridge=גשר,street=רחוב,window=חלון,kitchen=מטבח,shirt=חולצה,dress=שמלה,shoes=נעליים,socks=גרביים,green=ירוק,white=לבן,black=שחור,brown=חום,yellow=צהוב,orange=כתום,purple=סגול,happy=שמח,tired=עייף,hungry=רעב,thirsty=צמא,sunny=שמשי,cloudy=מעונן,number=מספר,letter=אות,music=מוזיקה,picture=תמונה,ticket=כרטיס,basket=סל,market=שוק').split(',').map(x=>x.split('='));
 function pool(n,filter){
   const seen=new Set(),out=[];
   const add=(en,he)=>{en=String(en||'').trim();he=String(he||'').trim();const k=en.toLowerCase();if(!en||!he||seen.has(k)||!/^[A-Za-z][A-Za-z' -]*$/.test(en)||(filter&&!filter(en)))return;seen.add(k);out.push({en,he})};
   sh(D.filter(w=>!w.hid)).forEach(w=>add(w.en,w.he));
   sh(U&&U.bank||[]).forEach(b=>add(b.en,b.he));
   const base=sh(out).slice(0,n);
-  if(base.length<n)sh(CW.concat(W5)).forEach(x=>{if(base.length<n&&!base.some(y=>y.en.toLowerCase()===x[0])&&(!filter||filter(x[0])))base.push({en:x[0],he:x[1]})});
+  if(base.length<n)sh(CW.concat(W5,W6)).forEach(x=>{if(base.length<n&&!base.some(y=>y.en.toLowerCase()===x[0])&&(!filter||filter(x[0])))base.push({en:x[0],he:x[1]})});
   return base;
 }
 function match(said,en){
@@ -1730,6 +1959,7 @@ function gIntro(g){
 }
 const GI={
  scr:{icon:'🔀',t:'אותיות מבולבלות',what:'מסדרים אותיות מבולבלות למילה באנגלית.',how:['מופיעה מילה בעברית ומתחתיה אותיות באנגלית בסדר שגוי.','מקלידים את המילה באנגלית בסדר הנכון ולוחצים בדיקה (או Enter).','אפשר לדלג. יש 8 מילים בכל סיבוב.'],go:()=>gScramble()},
+ lst:{icon:'👂',t:'שמיעה ובחירה',what:'המורה אומרת מילה באנגלית, ואתם בוחרים אותה מתוך 20 מילים.',how:['לוחצים התחל ושומעים מילה.','בוחרים מתוך 20 מילים, וכמה מהן דומות מאוד בצליל או באיות.','אפשר ללחוץ שמעו שוב. המילים מתאימות לרמת הדיבור שלכם.'],go:()=>gListen()},
  spd:{icon:'⚡',t:'סיבוב מהיר',what:'משחק מהירות בדיבור: אומרים באנגלית, בקול, מילים שמופיעות בעברית.',how:['לוחצים התחל. מופיעה מילה בעברית.','אומרים אותה באנגלית בקול. המיקרופון נפתח לבד אחרי כל מילה, ואין צורך ללחוץ עליו.','צריך להתחיל לענות תוך 10 שניות. מודדים כמה מהר שלפתם את המילה: עד 5, 7 או 10 שניות.','יש 10 מילים בסיבוב. בסוף מקבלים סיכום, ואפשר להוסיף למילון את המילים שהחמצתם.'],note:'צריך לאשר את המיקרופון בדפדפן, ולהזין מפתח Deepgram בהגדרות.',go:()=>gSpeed()},
  q20:{icon:'❓',t:'20 שאלות',what:'משחק ניחושים בשיחה עם המורה, בשאלות של כן ולא באנגלית. בוחרים מי מנחש:',modes:[
    {d:'המורה חושב על מילה, ואתם שואלים עד 20 שאלות של כן ולא כדי לנחש אותה, למשל "Is it an animal?".',l:'❓ אתם מנחשים',go:()=>startX('q20')},
@@ -1744,7 +1974,7 @@ const GI={
 function openGames(){
   if(!U)return;GM.id++;
   const g=el('div','topics');
-  [['🃏','משחק זיכרון',()=>gPairs()],['🔀','אותיות מבולבלות',()=>gIntro(GI.scr)],['⚡','סיבוב מהיר (דיבור)',()=>gIntro(GI.spd)],['❓','20 שאלות',()=>gIntro(GI.q20)],['🗣️','תאר בלי להגיד',()=>gIntro(GI.ds)],['📖','שרשרת סיפור',()=>gIntro(GI.st)],['✅','נכון ולא נכון',()=>gIntro(GI.tf)],['🎯','משימה',()=>gIntro(GI.ms)]]
+  [['🃏','משחק זיכרון',()=>gPairs()],['🔀','אותיות מבולבלות',()=>gIntro(GI.scr)],['👂','שמיעה ובחירה',()=>gIntro(GI.lst)],['⚡','סיבוב מהיר (דיבור)',()=>gIntro(GI.spd)],['❓','20 שאלות',()=>gIntro(GI.q20)],['🗣️','תאר בלי להגיד',()=>gIntro(GI.ds)],['📖','שרשרת סיפור',()=>gIntro(GI.st)],['✅','נכון ולא נכון',()=>gIntro(GI.tf)],['🎯','משימה',()=>gIntro(GI.ms)]]
   .forEach(x=>{const b=el('button','topic');b.append(el('span',null,x[0]),document.createTextNode(x[1]));b.onclick=x[2];g.append(b)});
   openModal('משחקים',g);
 }
@@ -1782,8 +2012,18 @@ function gPairs(lv){
   });
   box.append(el('div',null,'שלב '+(lv+1)+': מצאו את הזוגות, מילה באנגלית והתרגום שלה'),grid,mv);openModal('משחק זיכרון',box);
 }
+const LR={1:[3,4],2:[3,5],3:[4,7],4:[4,9],5:[5,12]};
+function gLv(){return Math.min(5,Math.max(1,+S.sl||2))}
+function gWords(n,lv){
+  let [a,b]=LR[lv],items=[];
+  for(let k=0;k<4;k++){
+    items=pool(n,w=>/^[a-z]+$/i.test(w)&&w.length>=a&&w.length<=b);
+    if(items.length>=n)break;a=Math.max(3,a-1);b=b+1;
+  }
+  return items;
+}
 function gScramble(){
-  const id=++GM.id,items=pool(8,w=>/^[a-z]{3,10}$/i.test(w));let i=0,score=0;
+  const lv=gLv(),id=++GM.id,items=gWords(8,lv);let i=0,score=0;
   const box=col(),top=el('small'),hint=el('div','big'),sc=el('div','big'),inp=el('input'),msg=el('div'),row=el('div');
   hint.style.direction='rtl';sc.style.letterSpacing='6px';sc.style.textTransform='uppercase';
   inp.dir='ltr';inp.autocomplete='off';inp.placeholder='כתבו את המילה';inp.style.cssText='background:var(--bg);border:2px solid var(--line);border-radius:12px;padding:10px 12px;font-size:20px;width:100%;text-align:center';
@@ -1794,7 +2034,7 @@ function gScramble(){
     if(id!==GM.id)return;
     if(i>=items.length){gameDone(score*2+4);box.replaceChildren();gEnd(box,'🔀 '+score+' / '+items.length,gScramble);return}
     const it=items[i],w=it.en.toLowerCase();let s;let tries=0;do{s=sh([...w]).join('');tries++}while(s===w&&tries<10);
-    done=false;top.textContent=(i+1)+' / '+items.length;hint.textContent=it.he;sc.textContent=s;inp.value='';inp.disabled=false;msg.textContent='';inp.focus();
+    done=false;top.textContent='רמה '+lv+' · '+(i+1)+' / '+items.length;hint.textContent=it.he;sc.textContent=s;inp.value='';inp.disabled=false;msg.textContent='';inp.focus();
   };
   const next=ok=>{
     if(done||id!==GM.id)return;done=true;const it=items[i];
@@ -1805,6 +2045,34 @@ function gScramble(){
   sk.onclick=()=>next(false);inp.onkeydown=e=>{if(e.key==='Enter')go.onclick()};
   box.append(top,el('div',null,'סדרו את האותיות למילה'),hint,sc,inp,msg,row);openModal('אותיות מבולבלות',box);show();
 }
+function gListen(){
+  const lv=gLv(),id=++GM.id,items=gWords(8,lv);let i=0,score=0,done=false;
+  const [la,lb]=LR[lv];
+  const bankW=[...new Set(CW.concat(W5,W6).map(x=>x[0].toLowerCase()).concat(D.filter(w=>!w.hid).map(w=>w.en.toLowerCase())))].filter(w=>/^[a-z]+$/.test(w));
+  const box=col(),top=el('small'),msg=el('div'),grid=el('div'),rp=el('button',null,'🔊 שמעו שוב');
+  grid.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:6px;direction:ltr';
+  msg.style.cssText='text-align:center;min-height:1.6em;font-weight:700';
+  let cur='';
+  const show=()=>{
+    if(id!==GM.id)return;
+    if(i>=items.length){gameDone(score*2+4);box.replaceChildren();gEnd(box,'👂 '+score+' / '+items.length,gGo);return}
+    const t=items[i].en.toLowerCase();cur=t;done=false;msg.textContent='';grid.replaceChildren();
+    top.textContent='רמה '+lv+' · '+(i+1)+' / '+items.length;
+    const others=bankW.filter(w=>w!==t),score2=w=>lev(w,t)+(w[0]===t[0]?0:.6)+Math.abs(w.length-t.length)*.3;
+    const similar=sh(others).sort((p,q)=>score2(p)-score2(q)).slice(0,6);
+    const rest=sh(others.filter(w=>!similar.includes(w)&&w.length>=Math.max(2,la-1)&&w.length<=lb+1)).slice(0,13);
+    const ch=sh([t,...similar,...rest]);
+    ch.forEach(w=>{const b=el('button',null,w);b.style.cssText='padding:8px 4px;font-size:16px';b.onclick=()=>{
+      if(done||id!==GM.id)return;done=true;
+      if(w===t){score++;msg.textContent='✅ נכון!';msg.style.color='#3b7d00';b.style.background='#d7ffb8';sfx&&sfx('ok')}
+      else{msg.textContent='❌ התשובה: '+t;msg.style.color='var(--red)';b.style.background='#ffdfe0';[...grid.children].forEach(x=>{if(x.textContent===t)x.style.background='#d7ffb8'})}
+      trackTime();i++;setTimeout(show,1600)};grid.append(b)});
+    speak(t);
+  };
+  rp.onclick=()=>{if(cur)speak(cur)};
+  box.append(top,el('div',null,'שמעו את המילה ובחרו אותה מהרשימה'),rp,grid,msg);openModal('שמיעה ובחירה',box);show();
+}
+const gGo=()=>gListen();
 async function gSpeed(){
   if(!S.dk){openGen();st('חסר קוד כניסה בהגדרות');return}
   if(rec&&rec.state==='recording'){st('סיימו קודם את ההקלטה הראשית');return}
