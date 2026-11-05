@@ -1,0 +1,65 @@
+name: Build Student APK
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Prepare web files (desktop view, zoom allowed)
+        run: |
+          mkdir -p www
+          cp index.html manifest.webmanifest sw.js version.json www/
+          cp -r icons www/icons
+          sed -i 's#<meta name="viewport"[^>]*>#<meta name="viewport" content="width=1100, initial-scale=0.35, minimum-scale=0.2, maximum-scale=5, user-scalable=yes">#' www/index.html
+          grep -n 'name="viewport"' www/index.html
+      - name: Create Capacitor project
+        run: |
+          npm init -y
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
+          npx cap init "English to speak" com.levy.englishspeak --web-dir www
+          npx cap add android
+          npx cap sync android
+      - name: Permissions, icon and name
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick
+          if command -v magick >/dev/null 2>&1; then IM="magick"; else IM="convert"; fi
+          RES=android/app/src/main/res
+          MAN=android/app/src/main/AndroidManifest.xml
+          sed -i 's#<application#<uses-permission android:name="android.permission.RECORD_AUDIO" />\n    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />\n    <application#' $MAN
+          rm -rf $RES/mipmap-anydpi-v26
+          for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+            n=${d%%:*}; s=${d##*:}
+            $IM apk-icons/icon-512.png -resize ${s}x${s} $RES/mipmap-$n/ic_launcher.png
+            $IM apk-icons/icon-512.png -resize ${s}x${s} $RES/mipmap-$n/ic_launcher_round.png
+            rm -f $RES/mipmap-$n/ic_launcher_foreground.png
+          done
+          sed -i 's#<string name="app_name">.*</string>#<string name="app_name">English to speak</string>#; s#<string name="title_activity_main">.*</string>#<string name="title_activity_main">English to speak</string>#' $RES/values/strings.xml
+      - name: Build debug APK
+        working-directory: android
+        run: |
+          sed -i 's/networkTimeout=.*/networkTimeout=180000/' gradle/wrapper/gradle-wrapper.properties
+          for i in 1 2 3; do
+            ./gradlew assembleDebug --no-daemon && exit 0
+            echo "Attempt $i failed, retrying in 15s"; sleep 15
+          done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: student-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Publish to Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk english-to-speak.apk
+          gh release create "student-${{ github.run_number }}" english-to-speak.apk --title "Student APK ${{ github.run_number }}" --notes "Debug APK for testing" --latest=false
