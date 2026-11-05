@@ -84,6 +84,7 @@ footer{display:flex;gap:8px;padding:10px 16px 16px}
 #aqt .dc{position:absolute;bottom:20px;line-height:1}
 #aqt .fs{position:absolute;line-height:1;animation:aqs 14s linear infinite}
 #aqt .fs span{display:block;animation:aqb 2.4s ease-in-out infinite}
+@keyframes qpop{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.25)}100%{transform:scale(1);opacity:1}}
 @keyframes aqs{0%{left:2%;transform:scaleX(-1)}49%{left:80%;transform:scaleX(-1)}50%{left:80%;transform:scaleX(1)}99%{left:2%;transform:scaleX(1)}100%{left:2%;transform:scaleX(-1)}}
 @keyframes aqb{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 #aqt .pl{position:absolute;font-size:15px;top:-24px;transition:top 1.7s ease-in,opacity .6s}
@@ -108,6 +109,7 @@ h1{font-size:17px}
 body[data-v=home] #back,body[data-v=home] #sum{display:none}
 body[data-v=home] #vlesson,body[data-v=lesson] #vhome{display:none}
 #vlesson{flex:1;display:flex;flex-direction:column;min-height:0}
+#vhome>.intb{align-self:end;justify-self:end;margin-top:auto;padding:6px 16px;font-size:14px;width:auto!important;min-width:0;flex:none}
 #vhome{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding:14px 16px 28px}
 #stk{background:color-mix(in srgb,var(--org) 16%,var(--card));border-color:var(--org);color:var(--orgd)}
 #lbar{background:var(--card);border-bottom:2px solid var(--line);padding:8px 16px!important}
@@ -890,22 +892,58 @@ function qShow(){
   openModal('מבחן מילים',box);speak(q.en);
 }
 function qEnd(){
-  sfx('win');
-  const n=Q.items.length,c=Q.c,p=Math.round(c/n*100),prev=U.tests[U.tests.length-1];
+  const n=Q.items.length,c=Q.c,p=Math.round(c/n*100),prev=U.tests[U.tests.length-1],good=p>=70;
   U.tests.push({t:Date.now(),c,n,m:Q.mode,nw:Q.items.filter(x=>!x.ref||x.ref.ok+x.ref.no<=1).length});saveU();markToday();addXP(10);checkBadges();
-  const box=col();box.append(el('div','big',c+' / '+n+' · '+p+'%'));
-  if(prev)box.append(el('div',null,'במבחן הקודם: '+Math.round(prev.c/prev.n*100)+'%'));
+  if(good){sfx('win');if(S.sfx!=='off')setTimeout(()=>sfx('ok'),700);confettiForce(p>=90?70:45)}else sfx('nav');
   const bad=Q.items.filter(x=>x.bad);
-  box.append(el('b',null,bad.length?'מילים לחזרה:':'כל התשובות נכונות!'));
-  bad.forEach(x=>{const d=el('div',null,x.en+' = '+x.he);d.dir='auto';box.append(d)});
-  box.append(el('small',null,'המילים שטעית בהן יחזרו במבחנים הבאים.'));
+  const T=p===100?['🏆','מושלם! ידעת את כל המילים!','אין מילה אחת שברחה לך. פשוט מדהים!']:
+    p>=90?['🌟','מצוין! כמעט מושלם!','יש לך אוצר מילים חזק. כל הכבוד!']:
+    p>=70?['🎉','כל הכבוד! עבודה יפה!','ההצלחה הזו באה מהתרגול שלך. ממשיכים ככה!']:
+    p>=50?['💪','התחלה טובה!','כבר יש לך בסיס. עוד סבב או שניים והמילים יישבו.']:
+    ['🌱','כל התחלה היא צעד קדימה!','לא נורא בכלל. המילים החדשות נכנסות לאט, ואנחנו נחזור עליהן יחד.'];
+  const box=col();box.style.textAlign='center';
+  const em=el('div','big',T[0]);em.style.fontSize='64px';if(good)em.style.animation='qpop .7s ease';
+  const h=el('div','big','ידעת '+c+' מילים מתוך '+n+'!');
+  const pc=el('div',null,p+'%');pc.style.cssText='font-size:30px;font-weight:800;color:'+(good?'#3b7d00':'var(--ac)');
+  const bar=el('div','bar'),bi=el('i');bi.style.width=p+'%';bar.append(bi);
+  box.append(em,el('b',null,T[1]),h,pc,bar,el('div',null,T[2]));
+  if(prev){const pp=Math.round(prev.c/prev.n*100),d=p-pp;box.append(el('small',null,'במבחן הקודם: '+pp+'%'+(d>0?' · השתפרת ב-'+d+' נקודות! 📈':'')))}
+  const hb=el('button',null,'📊 היסטוריית ציונים');hb.onclick=showTests;
+  if(bad.length){
+    const nb=el('button','p','המשך: '+bad.length+' מילים לחיזוק ←');nb.onclick=()=>qWeak(bad);box.append(nb,hb);
+  }else{box.append(el('b',null,'כל התשובות נכונות!'),hb)}
   openModal('תוצאות המבחן',box);
 }
+function qWeak(bad){
+  const box=col();
+  box.append(el('b',null,'המילים שעוד צריך לחזק'),el('div',null,'לא נורא, כך לומדים. המורה תיתן דגש מיוחד על המילים האלו בשיחות, והן יחזרו שוב ושוב במבחנים הבאים עד שיישבו.'));
+  bad.forEach(x=>{const r=el('div','card');r.dir='auto';r.append(el('b',null,x.en),el('span',null,' = '+x.he));const sp=el('button',null,'🔊');sp.onclick=()=>speak(x.en);sp.style.marginInlineStart='8px';r.append(sp);box.append(r)});
+  const hb=el('button',null,'📊 היסטוריית ציונים');hb.onclick=showTests;
+  const dn=el('button','p','סיום');dn.onclick=()=>$('md').classList.remove('show');
+  box.append(hb,dn);openModal('מילים לחיזוק',box);
+}
+function showTests(){
+  if(!U)return;const box=col();
+  if(!U.tests.length)box.append(el('div',null,'עוד לא נעשו מבחנים. אחרי המבחן הראשון הציונים יופיעו כאן.'));
+  else{
+    const best=Math.max(...U.tests.map(t=>Math.round(t.c/t.n*100)));
+    box.append(el('b',null,'מבחנים שעשית: '+U.tests.length+' · הציון הטוב ביותר: '+best+'%'));
+    U.tests.slice(-15).reverse().forEach(t=>{
+      const p=Math.round(t.c/t.n*100),r=el('div');
+      r.append(el('div',null,new Date(t.t).toLocaleDateString('he-IL')+' · ידעת '+t.c+' מתוך '+t.n+' ('+p+'%)'+(p>=70?' 🌟':'')));
+      const b=el('div','bar'),i=el('i');i.style.width=p+'%';b.append(i);r.append(b);box.append(r);
+    });
+  }
+  const bk=el('button',null,'חזרה למבחן');bk.onclick=quizMode;box.append(bk);
+  openModal('היסטוריית ציונים',box);
+}
+function confettiForce(n){const o=S.gf;S.gf='high';try{confetti(n)}finally{S.gf=o}}
 function quizMode(){
   if(!U)return;
   const box=col(),a=el('button','p','🔘 מבחן אמריקאי'),b=el('button',null,'✍️ כתיבה (מאתגר יותר)');
   a.onclick=()=>startQuiz('mc');b.onclick=()=>startQuiz('wr');
-  box.append(el('div',null,'איך תרצו להיבחן?'),a,b);openModal('מבחן מילים',box);
+  const hh=el('button',null,'📊 היסטוריית ציונים');hh.onclick=showTests;
+  box.append(el('div',null,'איך תרצו להיבחן?'),a,b,hh);openModal('מבחן מילים',box);
 }
 $('qzb').onclick=quizMode;
 
@@ -1183,7 +1221,7 @@ function resumeLesson(id){
 {const g=$('gset'),sv=$('gsave');['ak','micsel'].forEach(id=>g.insertBefore($(id).closest('label'),sv))}
 {const g=$('gset');g.prepend(el('h3',null,'הגדרות כלליות'));const x=el('button','cx','✕');x.setAttribute('aria-label','סגור');x.onclick=()=>g.classList.remove('open');g.prepend(x)}
 /* ---- version & updates ---- */
-const APP_VERSION='1.2.6',APP_DATE='03.11.2026',UPDATE_URL='https://27levyam-png.github.io/english-tutor/version.json';
+const APP_VERSION='1.2.7',APP_DATE='05.11.2026',UPDATE_URL='https://27levyam-png.github.io/english-tutor/version.json';
 $('ftx').innerHTML='© '+new Date().getFullYear()+' בצלאל. כל הזכויות שמורות<br>גרסה '+APP_VERSION+' · '+APP_DATE;
 function vNew(a,b){const x=String(a).split('.').map(Number),y=String(b).split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const p=x[i]||0,q=y[i]||0;if(p!==q)return p>q}return false}
 async function checkUpdate(silent){
@@ -1277,7 +1315,7 @@ function renderHome(){
   const hb2=el('button','tile t-org');hb2.style.cssText='grid-column:1/-1;flex-direction:row;justify-content:center;gap:10px';hb2.append(el('span',null,'📎'),document.createTextNode('עזרה בלימודים: קריאה ושינון מילים'));hb2.onclick=openHelp;tiles.append(hb2);
   const hb3=el('button','tile t-pur');hb3.style.cssText=hb2.style.cssText;hb3.append(el('span',null,'🎮'),document.createTextNode('משחקים'));hb3.onclick=openGames;tiles.append(hb3);{const hb4=el('button','tile t-yel');hb4.style.cssText=hb2.style.cssText;hb4.append(el('span',null,'📚'),document.createTextNode('שיעורים קודמים'));hb4.onclick=openSessions;tiles.append(hb4)}
   if(S.gf==='high'){try{aqTick();const hb5=el('button','tile t-grn');hb5.style.cssText=hb2.style.cssText;hb5.append(el('span',null,'🐠'),document.createTextNode('האקווריום · מנות אוכל: '+aq().food));hb5.onclick=openAquarium;tiles.append(hb5)}catch(e){console.error(e)}}
-  const hc=el('div','hcol');hc.append(hi,hero);try{const gc=goalCard();if(gc)hc.append(gc)}catch(e){console.error(e)}hc.append(two);h.append(hc,tiles);{const ib=el('button',null,'ℹ️ סקירה: איך משתמשים בתוכנה');ib.onclick=openIntro;h.append(ib)}
+  const hc=el('div','hcol');hc.append(hi,hero);try{const gc=goalCard();if(gc)hc.append(gc)}catch(e){console.error(e)}hc.append(two);h.append(hc,tiles);{const ib=el('button','intb','ℹ️ סקירה');ib.title='סקירה: איך משתמשים בתוכנה';ib.onclick=openIntro;h.append(ib)}
 }
 
 /* ---- natural voice ---- */
