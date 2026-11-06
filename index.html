@@ -131,6 +131,20 @@ footer{background:var(--card);border-top:2px solid var(--line);padding:12px 16px
 #upm{min-height:1em}
 #login{background:linear-gradient(160deg,color-mix(in srgb,var(--blue) 18%,var(--bg)),var(--bg))}
 .urow .un{display:flex;align-items:center;gap:12px;font-size:20px;padding:10px 14px;text-align:start}
+/*login-hero*/
+#login .lb{padding:0 0 20px;gap:12px;max-width:440px;overflow:auto}
+#login .lb>*{margin-inline:20px}
+#login .lb>.lhero{margin:0 0 4px;padding:22px 22px 44px;border-radius:18px 18px 0 0;background-color:var(--ac);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='160' viewBox='0 0 420 160' preserveAspectRatio='xMinYMax slice'%3E%3Ccircle cx='175' cy='88' r='20' fill='%23ffe066' opacity='.95'/%3E%3Cpath d='M0 160V108l60-46 50 42 50-58 90 88 100-48v74z' fill='%23fff' opacity='.16'/%3E%3Cpath d='M0 160V136c60-22 120-22 190-8s150 8 230-12v44z' fill='%23fff' opacity='.26'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:left bottom;background-size:100% 100%;color:#fff;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:nowrap;position:static}
+#login .lht{display:flex;flex-direction:column;gap:4px}
+#login .lht h2{margin:0;font-size:30px;font-weight:800;color:#fff}
+#login .lht small{font-size:15px;opacity:.95;color:#fff}
+#login .lhb{display:flex;gap:8px}
+#login .lhb button{width:44px;height:44px;padding:0;border-radius:50%;background:rgba(255,255,255,.92);border-color:rgba(0,0,0,.12);border-bottom-width:3px;font-size:20px;display:flex;align-items:center;justify-content:center}
+#login .urow .un{border-radius:18px;padding:12px 16px;font-size:21px}
+#login .urow .un .av,#login .urow .un>:first-child{flex-shrink:0}
+#login .urow>button:last-child{border-radius:18px;width:50px;color:var(--mut)}
+#login #unew{background:var(--ac);color:#fff;border-color:var(--acd);border-radius:18px;font-size:18px;padding:12px}
+#login #ftr{text-align:center;margin-top:4px}
 .av{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:22px}
 #set.open,#dict.open{position:fixed;z-index:14;top:50%;left:50%;transform:translate(-50%,-50%);width:min(540px,94vw);max-height:90vh;overflow:auto;margin:0;border-radius:24px;border:2px solid var(--line);box-shadow:0 12px 48px #0006}
 .cx{display:block;margin-inline-start:auto;padding:4px 12px}
@@ -331,7 +345,7 @@ body.tpo #tpb{display:none!important}
 <div id="pop"><span id="pt" dir="auto"></span><button id="pa">＋ למילון</button></div>
 <div id="md"><div class="lb"><div class="row" style="justify-content:space-between;align-items:center"><h2 id="mt" style="margin:0"></h2><button id="mx" aria-label="סגור">✕</button></div><div id="mb"></div></div></div>
 <div id="login"><div class="lb">
-  <div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">מי לומד היום?</h2><span style="display:flex;gap:6px"><button id="ibtn" aria-label="הסבר על התוכנה">ℹ️</button><button id="gsb" aria-label="הגדרות כלליות">⚙</button></span></div>
+  <div class="row lhero"><div class="lht"><h2>מי לומד היום?</h2><small>בחרו משתמש כדי להתחיל</small></div><span class="lhb"><button id="ibtn" aria-label="הסבר על התוכנה">ℹ️</button><button id="gsb" aria-label="הגדרות כלליות">⚙</button></span></div>
   <div id="khint" style="display:none;color:var(--red);font-weight:700"></div>
   <div id="ulist" style="display:flex;flex-direction:column;gap:8px"></div>
   <button id="unew">＋ הוספת משתמש חדש</button>
@@ -1295,7 +1309,7 @@ function resumeLesson(id){
 {const g=$('gset'),sv=$('gsave');['ak','micsel'].forEach(id=>g.insertBefore($(id).closest('label'),sv))}
 {const g=$('gset');g.prepend(el('h3',null,'הגדרות כלליות'));const x=el('button','cx','✕');x.setAttribute('aria-label','סגור');x.onclick=()=>g.classList.remove('open');g.prepend(x)}
 /* ---- version & updates ---- */
-const APP_VERSION='1.2.9',APP_DATE='06.11.2026',UPDATE_URL='https://27levyam-png.github.io/english-tutor/version.json';
+const APP_VERSION='1.3.0',APP_DATE='06.11.2026',UPDATE_URL='https://27levyam-png.github.io/english-tutor/version.json';
 $('ftx').innerHTML='© '+new Date().getFullYear()+' בצלאל. כל הזכויות שמורות<br>גרסה '+APP_VERSION+' · '+APP_DATE;
 function vNew(a,b){const x=String(a).split('.').map(Number),y=String(b).split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const p=x[i]||0,q=y[i]||0;if(p!==q)return p>q}return false}
 async function checkUpdate(silent){
