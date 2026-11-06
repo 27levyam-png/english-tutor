@@ -84,6 +84,9 @@ footer{display:flex;gap:8px;padding:10px 16px 16px}
 #aqt .dc{position:absolute;bottom:20px;line-height:1}
 #aqt .fs{position:absolute;line-height:1;animation:aqs 14s linear infinite}
 #aqt .fs span{display:block;animation:aqb 2.4s ease-in-out infinite}
+.okfx{animation:okfade 1s ease forwards}
+.okfx small{display:block;font-weight:800}
+@keyframes okfade{0%{background:#1e9e4e;border-color:#157a3a;color:#fff}40%{background:#8fd14a;border-color:#6fb02f;color:#14262b}100%{background:#ffd84a;border-color:#e0b000;color:#14262b}}
 @keyframes qpop{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.25)}100%{transform:scale(1);opacity:1}}
 @keyframes aqs{0%{left:2%;transform:scaleX(-1)}49%{left:80%;transform:scaleX(-1)}50%{left:80%;transform:scaleX(1)}99%{left:2%;transform:scaleX(1)}100%{left:2%;transform:scaleX(-1)}}
 @keyframes aqb{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
@@ -847,34 +850,35 @@ function showCal(){
 $('stk').onclick=showCal;
 
 /* ---- quiz ---- */
-var Q=null;
-async function startQuiz(mode){
+var Q=null,QN=10;
+const QMN={mc:'אמריקאי',sp:'דיבור באנגלית',lh:'שמיעה וכתיבה בעברית',wr:'כתיבה באנגלית',le:'שמיעה וכתיבה באנגלית'};
+async function startQuiz(mode,N){
   if(!U)return;
   if(!S.ak){openGen();st('חסר קוד כניסה בהגדרות');return}
   openModal('מבחן מילים',el('p',null,'מכין מבחן...'));
-  const bank=U.bank,nOld=Math.min(15,bank.length),nNew=bank.length?15:20;
+  const total=N||QN||10,bank=U.bank,nOld=Math.min(Math.floor(total/2),bank.length),nNew=total-nOld;
   const old=bank.slice().sort((a,b)=>(a.ok-a.no)-(b.ok-b.no)||(a.last||0)-(b.last||0)).slice(0,nOld);
   const low=bank.map(b=>b.en.toLowerCase());
   const must=D.filter(w=>!low.includes(w.en.toLowerCase())).slice(0,nNew).map(w=>w.en);
   try{
     const out=await ai('quiz',{cefr:U.cefr,age:U.age,job:U.job,n:nNew,must,bank:bank.map(b=>b.en)},null,3000);
     const arr=JSON.parse(out.match(/\[[\s\S]*\]/)[0]).filter(x=>x&&x.en&&x.he&&Array.isArray(x.wr)&&x.wr.length>=3);
-    if(arr.length<5)throw new Error('לא נוצרו מספיק מילים');
+    if(arr.length<Math.min(3,nNew))throw new Error('לא נוצרו מספיק מילים');
     const items=sh([...arr.slice(0,nNew).map(x=>({en:x.en,he:x.he,wr:x.wr.slice(0,3),isNew:1})),...old.map(b=>({en:b.en,he:b.he,wr:b.wr,ref:b}))]);
-    items.forEach(q=>q.opts=sh([q.he,...q.wr]));
+    items.forEach(q=>q.opts=sh([q.he,...(q.wr||[]).slice(0,3)]));
     Q={items,i:0,c:0,mode:mode||'mc'};qShow();
   }catch(e){openModal('מבחן מילים',el('p',null,'שגיאה ביצירת המבחן: '+e.message))}
 }
 function qShow(){
-  if(Q.mode==='wr')return qShowW();
-  const q=Q.items[Q.i],n=Q.items.length,box=col();
+  if(Q.mode==='sp')return qShowS();
+  if(Q.mode!=='mc')return qShowW();
+  const q=Q.items[Q.i],n=Q.items.length,box=col(),qi=Q.i;
   const top=el('div','row');top.style.justifyContent='space-between';
-  top.append(el('span',null,(Q.i+1)+' / '+n),el('span',null,'נכון: '+Q.c));
+  top.append(el('span',null,(Q.i+1)+' / '+n),qSw(),el('span',null,'נכון: '+Q.c));
   const bar=el('div','bar'),bi=el('i');bi.style.width=(Q.i/n*100)+'%';bar.append(bi);
   const sp=el('button',null,'🔊 השמע שוב');sp.onclick=()=>speak(q.en);
   const opts=el('div');opts.style.cssText='display:flex;flex-direction:column;gap:8px';opts.dir='rtl';
-  const nx=el('button','p',Q.i+1>=n?'סיום':'הבא');nx.style.display='none';
-  nx.onclick=()=>{if(q.adv)return;q.adv=1;Q.i++;Q.i>=n?qEnd():qShow()};
+  const adv=()=>{if(q.adv)return;q.adv=1;Q.i++;Q.i>=n?qEnd():qShow()};
   q.opts.forEach(o=>{
     const b=el('button','opt',o);
     b.onclick=()=>{
@@ -882,14 +886,46 @@ function qShow(){
       if(!q.ref){q.ref={en:q.en,he:q.he,wr:q.wr,ok:0,no:0};U.bank.push(q.ref)}
       if(ok){q.ref.ok++;Q.c++}else{q.ref.no++;q.bad=1}sfx(ok?'ok':'bad');trackTime();addXP(ok?2:0);
       q.ref.last=Date.now();
-      [...opts.children].forEach(x=>{if(x.textContent===q.he)x.classList.add('ok');else if(x===b)x.classList.add('bad')});
-      saveU();nx.style.display='';
-      const qi=Q.i;setTimeout(()=>{if(Q&&Q.i===qi&&!q.adv&&$('md').classList.contains('show')&&$('mt').textContent==='מבחן מילים')nx.onclick()},ok?900:1800);
+      [...opts.children].forEach(x=>{if(x.textContent===q.he){x.classList.add('ok');if(ok)okFx(x)}else if(x===b)x.classList.add('bad')});
+      saveU();
+      setTimeout(()=>{if(Q&&Q.i===qi&&!q.adv&&$('md').classList.contains('show')&&$('mt').textContent==='מבחן מילים')adv()},ok?1100:2000);
     };
     opts.append(b);
   });
-  box.append(top,bar,el('div','big',q.en),sp,opts,nx);
+  box.append(top,bar,el('div','big',q.en),sp,opts);
   openModal('מבחן מילים',box);speak(q.en);
+}
+function qSw(){
+  const sp=el('span');
+  if(Q.sw)return sp;
+  const b=el('button',null,'🔄 החלפת מילה (פעם אחת)');b.style.cssText='padding:3px 10px;font-size:13px;border-bottom-width:3px';
+  b.onclick=()=>{
+    const q=Q.items[Q.i];if(!q||q.done||Q.sw)return;
+    const used=new Set(Q.items.map(x=>x.en.toLowerCase()));
+    const pool=D.filter(w=>w.en&&w.he&&!used.has(w.en.toLowerCase()));
+    const bk=U.bank.filter(w=>!used.has(w.en.toLowerCase()));
+    const src=sh(pool.length?pool:bk);if(!src.length){st('אין כרגע מילה להחלפה');return}
+    const w=src[0],hes=sh([...D.map(x=>x.he),...U.bank.map(x=>x.he)].filter(h=>h&&h!==w.he)).slice(0,3);
+    const inb=U.bank.find(x=>x.en.toLowerCase()===w.en.toLowerCase());
+    const it={en:w.en,he:w.he,wr:inb&&inb.wr&&inb.wr.length>=3?inb.wr:hes,isNew:inb?0:1};if(inb)it.ref=inb;
+    it.opts=sh([it.he,...it.wr.slice(0,3)]);
+    Q.sw=1;Q.items[Q.i]=it;qShow();
+  };
+  sp.append(b);return sp;
+}
+function okFx(x,label){x.classList.add('okfx');if(label!==false){const m=el('small',null,'✓ '+(label||'יפה מאוד!'));x.append(m)}}
+function qMark(q,ok,xp){
+  if(!q.ref){q.ref={en:q.en,he:q.he,wr:q.wr||[],ok:0,no:0};U.bank.push(q.ref)}
+  if(ok){q.ref.ok++;Q.c++}else{q.ref.no++;q.bad=1}sfx(ok?'ok':'bad');
+  q.ref.last=Date.now();saveU();trackTime();addXP(ok?xp:0);
+}
+const hz=x=>String(x).replace(/[\u0591-\u05C7]/g,'').replace(/[^\u05D0-\u05EA ]/g,' ').replace(/\s+/g,' ').trim();
+function heMatch(a,t){
+  a=hz(a);if(!a)return 0;
+  const parts=[...String(t).replace(/\([^)]*\)/g,'').split(/[,;\/|]| או /),String(t)].map(hz).filter(Boolean);
+  for(const p of parts)if(a===p)return 1;
+  for(const p of parts)if(p.length>=4&&lev(a,p)<=1)return 2;
+  return 0;
 }
 function qEnd(){
   const n=Q.items.length,c=Q.c,p=Math.round(c/n*100),prev=U.tests[U.tests.length-1],good=p>=70;
@@ -914,24 +950,45 @@ function qEnd(){
   }else{box.append(el('b',null,'כל התשובות נכונות!'),hb)}
   openModal('תוצאות המבחן',box);
 }
+function geo(h1,h2,sun){
+  const g="<svg xmlns='http://www.w3.org/2000/svg' width='420' height='160' viewBox='0 0 420 160' preserveAspectRatio='xMinYMax slice'><circle cx='70' cy='42' r='22' fill='"+sun+"'/><path d='M0 160V105l60-45 50 40 50-55 90 85 100-45v75z' fill='"+h1+"'/><path d='M0 160V132c60-22 120-22 190-8s150 8 230-12v48z' fill='"+h2+"'/></svg>";
+  return 'url("data:image/svg+xml,'+encodeURIComponent(g)+'")';
+}
+function geoBox(bg,h1,h2,sun){return 'background-color:'+bg+';background-image:'+geo(h1,h2,sun)+';background-repeat:no-repeat;background-position:left bottom;background-size:100% 100%'}
 function qWeak(bad){
   const box=col();
-  box.append(el('b',null,'המילים שעוד צריך לחזק'),el('div',null,'לא נורא, כך לומדים. המורה תיתן דגש מיוחד על המילים האלו בשיחות, והן יחזרו שוב ושוב במבחנים הבאים עד שיישבו.'));
-  bad.forEach(x=>{const r=el('div','card');r.dir='auto';r.append(el('b',null,x.en),el('span',null,' = '+x.he));const sp=el('button',null,'🔊');sp.onclick=()=>speak(x.en);sp.style.marginInlineStart='8px';r.append(sp);box.append(r)});
+  const hd=el('div');hd.style.cssText='border-radius:22px;padding:20px 22px;color:#14262b;display:flex;flex-direction:column;gap:6px;'+geoBox('#DCE9F7','#C9DBF1','#B4CCEA','#E7C469');
+  const t=el('div',null,'המילים לחיזוק ('+bad.length+')');t.style.cssText='font-size:24px;font-weight:800';
+  const d=el('div',null,'המורה תיתן דגש מיוחד על המילים האלו בשיחות, והן יחזרו שוב במבחנים הבאים עד שתדעו אותם מצוין.');d.style.cssText='font-size:16px;line-height:1.5';
+  hd.append(t,d);
+  const ls=el('div');ls.style.cssText='border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--card)';
+  bad.forEach((x,i)=>{
+    const r=el('div');r.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 14px;'+(i?'border-top:1px solid var(--line)':'');
+    const en=el('b',null,x.en);en.dir='ltr';const he=el('span',null,x.he);he.dir='rtl';
+    const sp=el('button',null,'🔊');sp.setAttribute('aria-label','השמעה');sp.style.cssText='margin-inline-start:auto;padding:2px 10px;border-bottom-width:3px;border-radius:10px';sp.onclick=()=>speak(x.en);
+    r.append(en,el('span',null,'='),he,sp);ls.append(r);
+  });
   const hb=el('button',null,'📊 היסטוריית ציונים');hb.onclick=showTests;
   const dn=el('button','p','סיום');dn.onclick=()=>$('md').classList.remove('show');
-  box.append(hb,dn);openModal('מילים לחיזוק',box);
+  box.append(hd,ls,hb,dn);openModal('מילים לחיזוק',box);
 }
 function showTests(){
   if(!U)return;const box=col();
   if(!U.tests.length)box.append(el('div',null,'עוד לא נעשו מבחנים. אחרי המבחן הראשון הציונים יופיעו כאן.'));
   else{
-    const best=Math.max(...U.tests.map(t=>Math.round(t.c/t.n*100)));
-    box.append(el('b',null,'מבחנים שעשית: '+U.tests.length+' · הציון הטוב ביותר: '+best+'%'));
-    U.tests.slice(-15).reverse().forEach(t=>{
-      const p=Math.round(t.c/t.n*100),r=el('div');
-      r.append(el('div',null,new Date(t.t).toLocaleDateString('he-IL')+' · ידעת '+t.c+' מתוך '+t.n+' ('+p+'%)'+(p>=70?' 🌟':'')));
-      const b=el('div','bar'),i=el('i');i.style.width=p+'%';b.append(i);r.append(b);box.append(r);
+    box.append(el('b',null,'מבחנים שעשית: '+U.tests.length));
+    ['mc','sp','lh','wr','le'].forEach(k=>{
+      const L=U.tests.filter(t=>(t.m||'mc')===k);if(!L.length)return;
+      const best=Math.max(...L.map(t=>Math.round(t.c/t.n*100)));
+      const sec=el('div');sec.style.cssText='border:1px solid var(--line);border-radius:16px;padding:10px 14px;display:flex;flex-direction:column;gap:6px;background:var(--card)';
+      const h=el('div');h.style.cssText='display:flex;justify-content:space-between;align-items:center;gap:8px';
+      h.append(el('b',null,QMN[k]),el('small',null,L.length+' מבחנים · הטוב ביותר: '+best+'%'));sec.append(h);
+      L.slice(-6).reverse().forEach(t=>{
+        const p=Math.round(t.c/t.n*100),r=el('div');
+        r.append(el('div',null,new Date(t.t).toLocaleDateString('he-IL')+' · ידעת '+t.c+' מתוך '+t.n+' ('+p+'%)'+(p>=70?' 🌟':'')));
+        const b=el('div','bar'),i=el('i');i.style.width=p+'%';b.append(i);r.append(b);sec.append(r);
+      });
+      box.append(sec);
     });
   }
   const bk=el('button',null,'חזרה למבחן');bk.onclick=quizMode;box.append(bk);
@@ -940,10 +997,27 @@ function showTests(){
 function confettiForce(n){const o=S.gf;S.gf='high';try{confetti(n)}finally{S.gf=o}}
 function quizMode(){
   if(!U)return;
-  const box=col(),a=el('button','p','🔘 מבחן אמריקאי'),b=el('button',null,'✍️ כתיבה (מאתגר יותר)');
-  a.onclick=()=>startQuiz('mc');b.onclick=()=>startQuiz('wr');
+  const box=col();
+  const M=[
+   ['mc','🔘','מבחן אמריקאי','בוחרים את התרגום הנכון','#E6EEF9','#D3E1F3','#C2D6EE','#E7C469','#14262b'],
+   ['sp','👆 ← 🎤','עברית, ותשובה בדיבור','קוראים מילה בעברית ואומרים אותה באנגלית','#C9DBF1','#B5CDEB','#9FBEE3','#E7C469','#14262b'],
+   ['lh','🎧 ← ✍️','שמיעה, ותשובה בעברית','המורה משמיעה מילה באנגלית וכותבים אותה בעברית','#9DBBE2','#8AAAD6','#779BCB','#E7C469','#10243a'],
+   ['wr','✍️ ← ✍️','עברית, ותשובה באנגלית','קוראים מילה בעברית וכותבים אותה באנגלית (מאתגר)','#5B86C0','#4E78B1','#416AA2','#E7C469','#fff'],
+   ['le','🎧 ← ✍️','שמיעה, ותשובה באנגלית','המורה משמיעה מילה באנגלית וכותבים אותה באנגלית (מאתגר)','#1B2F4B','#233C5E','#2B4770','#E7C469','#fff']];
+  const cnt=el('div');cnt.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap';
+  cnt.append(el('b',null,'כמה שאלות?'));
+  const pills=[5,10,15,20].map(n=>{const b=el('button',null,String(n));b.style.cssText='min-width:52px;padding:6px 14px';
+    const mark=()=>{b.classList.toggle('p',QN===n)};mark();b.onclick=()=>{QN=n;pills.forEach(x=>x.mark())};b.mark=mark;cnt.append(b);return b});
+  box.append(el('div',null,'איך תרצו להיבחן? מהקל אל הקשה:'),cnt);
+  M.forEach(m=>{
+    const b=el('button');b.style.cssText='display:flex;align-items:center;gap:12px;text-align:start;padding:8px 16px;border:0;border-bottom:3px solid rgba(0,0,0,.2);border-radius:16px;color:'+m[8]+';'+geoBox(m[4],m[5],m[6],m[7]);
+    const ic=el('span',null,m[1]);ic.style.cssText='font-size:22px;white-space:nowrap;min-width:84px;text-align:center';ic.dir='rtl';
+    const tx=el('span');tx.style.cssText='display:flex;flex-direction:column;gap:2px';
+    const t=el('b',null,m[2]);t.style.fontSize='17px';const d=el('small',null,m[3]);d.style.cssText='font-size:13px;opacity:.9;font-weight:500';
+    tx.append(t,d);b.append(ic,tx);b.onclick=()=>startQuiz(m[0],QN);box.append(b);
+  });
   const hh=el('button',null,'📊 היסטוריית ציונים');hh.onclick=showTests;
-  box.append(el('div',null,'איך תרצו להיבחן?'),a,b,hh);openModal('מבחן מילים',box);
+  box.append(hh);openModal('מבחן מילים',box);
 }
 $('qzb').onclick=quizMode;
 
@@ -1221,7 +1295,7 @@ function resumeLesson(id){
 {const g=$('gset'),sv=$('gsave');['ak','micsel'].forEach(id=>g.insertBefore($(id).closest('label'),sv))}
 {const g=$('gset');g.prepend(el('h3',null,'הגדרות כלליות'));const x=el('button','cx','✕');x.setAttribute('aria-label','סגור');x.onclick=()=>g.classList.remove('open');g.prepend(x)}
 /* ---- version & updates ---- */
-const APP_VERSION='1.2.7',APP_DATE='05.11.2026',UPDATE_URL='https://27levyam-png.github.io/english-tutor/version.json';
+const APP_VERSION='1.2.9',APP_DATE='06.11.2026',UPDATE_URL='https://27levyam-png.github.io/english-tutor/version.json';
 $('ftx').innerHTML='© '+new Date().getFullYear()+' בצלאל. כל הזכויות שמורות<br>גרסה '+APP_VERSION+' · '+APP_DATE;
 function vNew(a,b){const x=String(a).split('.').map(Number),y=String(b).split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const p=x[i]||0,q=y[i]||0;if(p!==q)return p>q}return false}
 async function checkUpdate(silent){
@@ -2261,30 +2335,61 @@ $('nwb').onclick=()=>{
   ask('(CUE:xnew)',true);
 };
 
-/* ---- writing quiz ---- */
+/* ---- writing / listening / speaking quiz ---- */
 function qShowW(){
-  const q=Q.items[Q.i],n=Q.items.length,box=col(),qi=Q.i;
-  const top=el('div','row');top.style.justifyContent='space-between';top.append(el('span',null,(Q.i+1)+' / '+n),el('span',null,'נכון: '+Q.c));
+  const m=Q.mode,q=Q.items[Q.i],n=Q.items.length,box=col(),qi=Q.i,heAns=m==='lh',listen=m!=='wr';
+  const top=el('div','row');top.style.justifyContent='space-between';top.append(el('span',null,(Q.i+1)+' / '+n),qSw(),el('span',null,'נכון: '+Q.c));
   const bar=el('div','bar'),bi=el('i');bi.style.width=(Q.i/n*100)+'%';bar.append(bi);
-  const hw=el('div','big',q.he);hw.style.direction='rtl';
-  const inp=el('input');inp.dir='ltr';inp.autocomplete='off';inp.placeholder='כתבו באנגלית';inp.style.cssText='background:var(--bg);border:2px solid var(--line);border-radius:12px;padding:10px 12px;font-size:20px;width:100%;text-align:center';
-  const res=el('div');res.style.cssText='min-height:2.6em;text-align:center;font-weight:700';res.dir='auto';
+  let hw;
+  if(listen){hw=el('button','p','🔊 לחצו להשמעה');hw.style.fontSize='22px';hw.onclick=()=>speak(q.en)}
+  else{hw=el('div','big',q.he);hw.style.direction='rtl'}
+  const inp=el('input');inp.dir=heAns?'rtl':'ltr';inp.autocomplete='off';inp.placeholder=heAns?'כתבו בעברית':'כתבו באנגלית';inp.style.cssText='background:var(--bg);border:2px solid var(--line);border-radius:12px;padding:10px 12px;font-size:20px;width:100%;text-align:center';
+  const res=el('div');res.style.cssText='min-height:2.6em;text-align:center;font-weight:700;border-radius:12px;padding:6px';res.dir='auto';
   const go=el('button','p','בדיקה'),nx=el('button','p',Q.i+1>=n?'סיום':'הבא');nx.style.display='none';
-  const adv=()=>{if(q.adv)return;q.adv=1;Q.i++;Q.i>=n?qEnd():qShowW()};
+  const adv=()=>{if(q.adv)return;q.adv=1;Q.i++;Q.i>=n?qEnd():qShow()};
   nx.onclick=adv;
   const check=()=>{
-    if(q.done)return;const a=nz(inp.value);if(!a){inp.focus();return}
-    q.done=1;const t=nz(q.en);let ok=a===t,near=false;
-    if(!ok&&t.length>=5&&lev(a,t)<=1){ok=true;near=true}
-    if(!q.ref){q.ref={en:q.en,he:q.he,wr:q.wr||[],ok:0,no:0};U.bank.push(q.ref)}
-    if(ok){q.ref.ok++;Q.c++}else{q.ref.no++;q.bad=1}sfx(ok?'ok':'bad');
-    q.ref.last=Date.now();saveU();trackTime();addXP(ok?3:0);
-    res.textContent=ok?(near?'✓ כמעט מושלם! הכתיב הנכון: '+q.en:'✓ נכון!'):'✗ התשובה: '+q.en;res.style.color=ok?'#3b7d00':'var(--red)';
+    if(q.done)return;const raw=inp.value;if(!String(raw).trim()){inp.focus();return}
+    q.done=1;let ok=false,near=false;
+    if(heAns){const r=heMatch(raw,q.he);ok=r>0;near=r===2}
+    else{const a=nz(raw),t=nz(q.en);ok=a===t;if(!ok&&t.length>=5&&lev(a,t)<=1){ok=true;near=true}}
+    const ans=heAns?q.he:q.en;
+    qMark(q,ok,m==='le'?4:3);
+    if(ok){res.textContent=near?'✓ כמעט מושלם! הכתיב הנכון: '+ans:'✓ יפה מאוד!';okFx(res,false)}
+    else{res.textContent='✗ התשובה: '+ans;res.style.color='var(--red)'}
     inp.disabled=true;go.style.display='none';nx.style.display='';speak(q.en);
     setTimeout(()=>{if(Q&&Q.i===qi&&!q.adv&&$('md').classList.contains('show')&&$('mt').textContent==='מבחן מילים')adv()},ok?1300:2600);
   };
   go.onclick=check;inp.onkeydown=e=>{if(e.key==='Enter')check()};
-  box.append(top,bar,hw,inp,res,go,nx);openModal('מבחן מילים',box);setTimeout(()=>inp.focus(),60);
+  box.append(top,bar,hw,inp,res,go,nx);openModal('מבחן מילים',box);
+  setTimeout(()=>{if(listen)speak(q.en);inp.focus()},120);
+}
+function qShowS(){
+  const q=Q.items[Q.i],n=Q.items.length,box=col(),qi=Q.i;
+  const top=el('div','row');top.style.justifyContent='space-between';top.append(el('span',null,(Q.i+1)+' / '+n),qSw(),el('span',null,'נכון: '+Q.c));
+  const bar=el('div','bar'),bi=el('i');bi.style.width=(Q.i/n*100)+'%';bar.append(bi);
+  const hw=el('div','big',q.he);hw.style.direction='rtl';
+  const mic=el('button','p','🎤 לחצו ודברו באנגלית');mic.style.fontSize='20px';
+  const res=el('div');res.style.cssText='min-height:2.6em;text-align:center;font-weight:700;border-radius:12px;padding:6px';res.dir='auto';
+  const sk=el('button',null,'דלגו (נחשב כטעות)'),nx=el('button','p',Q.i+1>=n?'סיום':'הבא');nx.style.display='none';
+  const adv=()=>{if(q.adv)return;q.adv=1;Q.i++;Q.i>=n?qEnd():qShowS()};
+  nx.onclick=adv;
+  const fin=(ok,said)=>{
+    q.done=1;qMark(q,ok,4);
+    if(ok){res.textContent='✓ יפה מאוד!';okFx(res,false)}
+    else{res.textContent=(said?'שמעתי: '+said+'. ':'')+'✗ התשובה: '+q.en;res.style.color='var(--red)'}
+    mic.style.display='none';sk.style.display='none';nx.style.display='';speak(q.en);
+    setTimeout(()=>{if(Q&&Q.i===qi&&!q.adv&&$('md').classList.contains('show')&&$('mt').textContent==='מבחן מילים')adv()},ok?1300:2800);
+  };
+  mic.onclick=()=>tpRec('en',mic,tx=>{
+    if(q.done||!$('md').classList.contains('show'))return;
+    if(!tx||!nz(tx)){res.textContent='לא נשמע דיבור. נסו שוב';res.style.color='var(--red)';return}
+    const said=nz(tx).split(' '),tw=nz(q.en).split(' ');
+    const ok=tw.every(w=>said.some(x=>x===w||(w.length>=4&&lev(x,w)<=1)));
+    fin(ok,tx);
+  });
+  sk.onclick=()=>{if(!q.done)fin(false,'')};
+  box.append(top,bar,hw,mic,res,sk,nx);openModal('מבחן מילים',box);
 }
 
 /* ---- intro / how-to screens ---- */
