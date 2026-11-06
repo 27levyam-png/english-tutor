@@ -449,9 +449,17 @@ function lesP(){
 }
 function slv(){return (S.sl==='auto'||!S.sl)?(+slDef()):(+S.sl||2)}
 function bilOn(){return S.bil==='on'||(S.bil!=='off'&&slv()<=1)}
+function nowStr(){
+  try{
+    const d=new Date(),o={timeZone:'Asia/Jerusalem'};
+    const h=+new Intl.DateTimeFormat('en-GB',{...o,hour:'2-digit',hour12:false}).format(d)%24;
+    const part=h>=5&&h<12?'morning':h>=12&&h<18?'afternoon':h>=18&&h<22?'evening':'night';
+    return new Intl.DateTimeFormat('en-GB',{...o,weekday:'long',day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(d)+' ('+part+')';
+  }catch(e){return ''}
+}
 function chatP(){
   return {lvl:$('lvl').value,scen:$('scen').value,acc:S.acc==='gb'?'gb':'us',hebmix:(S.hebmix==='off'&&!bilOn())?'off':'on',bil:bilOn(),sl:slv(),
-    prof:U?{name:enName(U),g:U.g,age:U.age,job:U.job}:null,dict:dictWords(),les:lesP(),gdone:gDone(),ending:!!(L&&L.ending)};
+    prof:U?{name:enName(U),g:U.g,age:U.age,job:U.job,now:nowStr()}:null,dict:dictWords(),les:lesP(),gdone:gDone(),ending:!!(L&&L.ending)};
 }
 async function apiFetch(path,opt){
   if(!S.ak)throw new Error('חסר קוד כניסה בהגדרות');
@@ -1059,7 +1067,7 @@ function quizMode(){
    ['mc','🔘','מבחן אמריקאי','בוחרים את התרגום הנכון','#E6EEF9','#D3E1F3','#C2D6EE','#E7C469','#14262b'],
    ['sp','👆 ← 🎤','עברית, ותשובה בדיבור','קוראים מילה בעברית ואומרים אותה באנגלית','#C9DBF1','#B5CDEB','#9FBEE3','#E7C469','#14262b'],
    ['lh','🎧 ← ✍️','שמיעה, ותשובה בעברית','המורה משמיעה מילה באנגלית וכותבים אותה בעברית','#9DBBE2','#8AAAD6','#779BCB','#E7C469','#10243a'],
-   ['wr','✍️ ← ✍️','עברית, ותשובה באנגלית','קוראים מילה בעברית וכותבים אותה באנגלית (מאתגר)','#5B86C0','#4E78B1','#416AA2','#E7C469','#fff'],
+   ['wr','👆 ← ✍️','עברית, ותשובה באנגלית','קוראים מילה בעברית וכותבים אותה באנגלית (מאתגר)','#5B86C0','#4E78B1','#416AA2','#E7C469','#fff'],
    ['le','🎧 ← ✍️','שמיעה, ותשובה באנגלית','המורה משמיעה מילה באנגלית וכותבים אותה באנגלית (מאתגר)','#1B2F4B','#233C5E','#2B4770','#E7C469','#fff']];
   const cnt=el('div');cnt.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap';
   cnt.append(el('b',null,'כמה שאלות?'));
@@ -1352,7 +1360,7 @@ function resumeLesson(id){
 {const g=$('gset'),sv=$('gsave');['ak','micsel'].forEach(id=>g.insertBefore($(id).closest('label'),sv))}
 {const g=$('gset');g.prepend(el('h3',null,'הגדרות כלליות'));const x=el('button','cx','✕');x.setAttribute('aria-label','סגור');x.onclick=()=>g.classList.remove('open');g.prepend(x)}
 /* ---- version & updates ---- */
-const APP_VERSION='1.4.0',APP_DATE='06.11.2026',UPDATE_URL='https://27levyam-png.github.io/english-tutor/version.json';
+const APP_VERSION='1.4.2',APP_DATE='06.11.2026',UPDATE_URL='https://27levyam-png.github.io/english-tutor/version.json';
 $('ftx').innerHTML='© '+new Date().getFullYear()+' בצלאל. כל הזכויות שמורות<br>גרסה '+APP_VERSION+' · '+APP_DATE;
 function vNew(a,b){const x=String(a).split('.').map(Number),y=String(b).split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const p=x[i]||0,q=y[i]||0;if(p!==q)return p>q}return false}
 async function checkUpdate(silent){
