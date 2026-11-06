@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>מורה לאנגלית</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#1cb0f6">
+<meta name="theme-color" content="#1B2F4B">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <style>
@@ -268,7 +268,67 @@ body.tpo #tpb{display:none!important}
 .mk .chips span{border:2px solid var(--line);border-radius:14px;padding:3px 10px}
 #ibtn{font-size:22px;padding:4px 12px}
 </style>
-</head>
+<style id="common">
+#stabs{display:none}
+.sec .sech{margin:0;font-size:20px}.sec .secs{font-size:14px;color:var(--mut);margin:-6px 0 4px}
+.secb{display:flex;flex-direction:column;gap:12px}
+.sec{display:flex;flex-direction:column;gap:10px}
+#lvsum{background:color-mix(in srgb,var(--yel) 22%,var(--card));border-radius:12px;padding:10px 14px;font-size:15px;line-height:1.5;color:var(--tx)}
+details.adv{border:1.5px dashed var(--line);border-radius:14px;padding:10px 14px}
+details.adv summary{cursor:pointer;font-weight:700;color:var(--tx)}
+details.adv[open] summary{margin-bottom:10px}
+#set.open{max-height:92vh}
+
+body[data-v=home] #gear,body[data-v=home] #swb{display:inline-block}
+header #gear{font-size:16px;padding:8px 14px}header #stk{order:0}header #gear{order:1}header #swb{order:2}
+body[data-v=lesson] header #gear{order:0}
+.tile.prevb{width:100%;grid-column:auto!important;flex-direction:row!important;justify-content:center!important;align-items:center!important;padding:12px 16px!important}
+.tile.prevb span{width:auto;height:auto;background:none!important;font-size:22px}
+</style>
+<style id="skinA">
+:root{--bg:#F8F3E6;--card:#FFFDF7;--tx:#1B2F4B;--mut:#4C5F7A;--ac:#1B2F4B;--acd:#101E33;--blue:#2B456A;--bluedk:#1B2F4B;--org:#B88A2A;--orgd:#8A6414;--pur:#6E5A8E;--purd:#4E3E6B;--yel:#E7C469;--red:#B3361F;--line:#E2D8BF;--me:#E4EAF3}
+@media(prefers-color-scheme:dark){:root{--bg:#F8F3E6;--card:#FFFDF7;--tx:#1B2F4B;--mut:#4C5F7A;--line:#E2D8BF;--me:#E4EAF3}}
+html,body{background:#F8F3E6}
+body{font-family:'Assistant','Segoe UI',Arial,sans-serif}
+h1,h2,h3,.hi h2,.hero h3,.sech{font-family:'Frank Ruhl Libre',serif;font-weight:900}
+button{border-width:1.5px;border-bottom-width:1.5px;border-radius:12px;font-weight:700}
+button:active{transform:none;border-bottom-width:1.5px;opacity:.85}
+button.p{background:#1B2F4B;border-color:#1B2F4B;color:#F8F3E6}
+header{background:#1B2F4B;color:#F8F3E6;border-bottom:0;padding:12px 18px}
+header h1{color:#F8F3E6;font-size:22px}
+header button{background:#2B456A;border-color:#3E5B86;color:#F8F3E6}
+header #stk{background:#E7C469;border-color:#E7C469;color:#1B2F4B}
+header #endb{background:#B3361F;border-color:#B3361F;color:#fff}
+.hav{background:#E7C469;color:#1B2F4B}
+.hero{background:#1B2F4B;border-bottom-width:0;border-radius:22px;padding:26px 28px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200' viewBox='0 0 300 200'%3E%3Ccircle cx='70' cy='55' r='26' fill='%23E7C469' opacity='.9'/%3E%3Cpath d='M0 200V130l60-55 50 45 45-60 80 90v50z' fill='%232B456A'/%3E%3Cpath d='M0 200V165l70-40 60 40 50-30 120 65z' fill='%2335547F'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:left bottom;background-size:100% 100%}
+.hero h3{font-size:30px}
+.hero button{background:#E7C469;color:#1B2F4B;border-color:#E7C469;font-size:19px;align-self:flex-start;padding:12px 30px}
+.card{border-width:1.5px;border-bottom-width:1.5px;border-radius:18px;background:var(--card)}
+.card .num{color:#8A6414}
+.tile{flex-direction:row;justify-content:flex-start;gap:14px;padding:14px 16px;font-size:17px;border-radius:16px;background:var(--card);border-color:var(--line);color:var(--tx);text-align:start}
+.t-pur,.t-yel,.t-blue,.t-grn,.t-org{background:var(--card);border-color:var(--line)}
+.tile span{width:46px;height:46px;border-radius:12px;background:#F3E8C8;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.lb,#gset.open,#set.open,#dict.open,#intro .ib{border-width:1.5px;border-bottom-width:1.5px;border-radius:20px}
+.m{border-radius:20px}.me{background:#1B2F4B;color:#F8F3E6;border-color:#1B2F4B}
+.ai{background:#FFFDF7;border-color:#E2D8BF}.sum{background:#F3E8C8;border-color:#E7C469}
+#mic{background:#1B2F4B;border-color:#1B2F4B;color:#F8F3E6;border-radius:16px}
+#mic.rec{background:#B3361F;border-color:#B3361F}
+#lbar{background:#FFFDF7}footer{background:#FFFDF7}
+#sw,#nwb{background:#F3E8C8;border-color:#E7C469;color:#1B2F4B}
+.week span.on{background:#B88A2A;border-color:#8A6414}
+.cal .on{background:#1B2F4B;border-color:#1B2F4B}
+.bar i,#bar{background:#B88A2A}
+@media(min-width:1000px){body[data-v=home] #vhome>.tiles{grid-template-columns:1fr}}
+.tile{grid-column:auto!important;flex-direction:row!important;justify-content:flex-start!important}
+/* settings: tabs */
+#set.open{width:min(760px,96vw)}
+#stabs{display:flex;flex-wrap:wrap;gap:8px;border-bottom:1.5px solid var(--line);padding-bottom:10px}
+#stabs button{border-radius:999px;padding:8px 16px;font-size:15px;background:#FFFDF7}
+#stabs button.on{background:#1B2F4B;color:#F8F3E6;border-color:#1B2F4B}
+#set .sec{display:none}#set .sec.on{display:flex}
+#set .sech{font-size:26px}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&family=Frank+Ruhl+Libre:wght@500;700;900&display=swap" rel="stylesheet"></head>
 <body data-v="home">
 <header>
   <button id="back" aria-label="חזרה">→</button>
@@ -281,20 +341,15 @@ body.tpo #tpb{display:none!important}
   <button id="prb">התקדמות</button>
   <button id="swb">החלף משתמש</button>
   <button id="dictb">מילון אישי</button>
-  <button id="gear" aria-label="הגדרות אישיות">⚙</button>
+  <button id="gear" aria-label="הגדרות אישיות">⚙ הגדרות</button>
   <button id="endb">סיום שיעור</button>
 </header>
 <div id="set"><div id="sw"></div>
-  <label>קוד כניסה<input id="ak" type="text" autocomplete="off" dir="ltr" placeholder="XXXX-XXXX" style="text-transform:uppercase"></label>
-  <input id="dk" type="hidden">
-  <label>רמה
+<div id="stabs"></div><section class="sec" data-k="lvl"><h3 class="sech">הרמה והלמידה</h3><div class="secs">בוחרים רמה אחת, והמורה מתאים את עצמו.</div><div class="secb"><label>רמה
     <select id="lvl"><option value="A1">A1 – מתחיל</option><option value="A2" selected>A2 – בסיסי</option><option value="B1">B1 – בינוני</option><option value="B2">B2 – בינוני-גבוה</option><option value="C1">C1 – מתקדם</option><option value="C2">C2 – כמעט שפת אם</option></select><div id="lvd" style="font-size:13px"></div>
-  </label>
-  <label>רמת הדיבור של המורה
-    <select id="slv"><option value="1">1 · מתחיל מאוד</option><option value="2" selected>2 · קל</option><option value="3">3 · בינוני</option><option value="4">4 · מתקדם</option><option value="5">5 · כמו דובר שפת אם</option></select>
-    <small id="slvd" style="line-height:1.6"></small>
-  </label>
-  <label>נושא השיחה
+  </label><div id="lvsum"></div><label>שפת המורה<select id="tlang"><option value="auto">אוטומטי לפי הרמה (מומלץ)</option><option value="on">עברית ואנגלית (למתחילים)</option><option value="off">אנגלית בלבד</option></select><small id="tld" style="line-height:1.6"></small></label><label>תרגום מתחת להודעות המורה
+    <select id="gloss"><option value="full" selected>תרגום מלא של התשובה</option><option value="click">בלי תרגום (אפשר ללחוץ על מילה)</option></select>
+  </label><label>נושא השיחה
     <select id="scen">
       <option value="free conversation about daily life">שיחה חופשית</option>
       <option value="ordering food in a restaurant">מסעדה</option>
@@ -302,26 +357,13 @@ body.tpo #tpb{display:none!important}
       <option value="traveling and asking for directions">טיול ומסלולים</option>
       <option value="small talk with a new colleague">היכרות עם עמית</option>
     </select>
-  </label>
-  <label>מבטא המורה<select id="acc"><option value="us">אמריקאי</option><option value="gb">בריטי</option></select></label>
-  <label>תרגום מתחת להודעות המורה
-    <select id="gloss"><option value="full" selected>תרגום מלא של התשובה</option><option value="click">בלי תרגום (אפשר ללחוץ על מילה)</option></select>
-  </label>
-  <label>סוג הקול<select id="vox"><option value="dg" selected>קול טבעי ומנגן (Deepgram)</option><option value="basic">קול רגיל של הדפדפן (חינמי)</option></select></label>
-  <label>הבנת עברית בשיחה<select id="hebmix"><option value="off" selected>אנגלית בלבד (מומלץ, עם פאנל התרגום)</option><option value="on">המורה מבין גם עברית</option></select>
-    <small id="hmd" style="line-height:1.6"><b>אנגלית בלבד:</b> המורה מדבר ומצפה לאנגלית בלבד. מי שלא יודע איך אומרים משהו משתמש בפאנל התרגום בצד. התמלול מהיר וזול יותר.<br><b>המורה מבין גם עברית:</b> אפשר לשלב מילים או משפטים בעברית באמצע השיחה. כל הקלטה מתומללת פעמיים, ולכן יש עיכוב קטן ועלות גבוהה יותר.</small></label>
-  <label>מצב מתחילים (עברית ואנגלית)<select id="bil"><option value="auto" selected>אוטומטי (ברמות הדיבור 1 ו-2)</option><option value="on">תמיד</option><option value="off">לא</option></select>
-    <small style="line-height:1.6">המורה מדברת גם עברית ומושכת בהדרגה לאנגלית, משפט אחד בכל פעם. כשהמצב פעיל, התמלול גם מבין עברית.</small></label>
-  <label>הקראת עברית במצב מתחילים<select id="hesp"><option value="on" selected>כן (קול עברי של המחשב)</option><option value="off">לא, רק בכתב</option></select></label>
-  <label>כפתור "העבר למורה" בפאנל התרגום<select id="sendb"><option value="off" selected>לא מופיע: התלמיד אומר בעצמו למורה (מומלץ ללימוד)</option><option value="on">מופיע: העברה למורה בלחיצה</option></select></label>
-  <label>משך שיעור רצוי<select id="ltm"><option value="5">5 דקות</option><option value="10">10 דקות</option><option value="15" selected>15 דקות</option><option value="20">20 דקות</option><option value="30">30 דקות</option><option value="45">45 דקות</option></select><small>כשהזמן עובר, המורה מציע לסכם ולהיפרד.</small></label>
-  <label>יעד יומי<select id="dgl"><option value="5">5 דקות ביום</option><option value="10" selected>10 דקות ביום</option><option value="15">15 דקות ביום</option><option value="20">20 דקות ביום</option><option value="30">30 דקות ביום</option><option value="45">45 דקות ביום</option><option value="60">60 דקות ביום</option></select></label>
-  <label>צלילי אפקט<select id="sfxm"><option value="on">מופעלים: צליל הצלחה ומעבר</option><option value="off">כבויים</option></select></label>
-  <label>סגנון משחקיות<select id="gfx"><option value="high">עשיר: נקודות, חיית מחמד ואנימציות (מתאים לילדים)</option><option value="low" selected>מינימלי: התקדמות והישגים בלבד (מתאים למבוגרים)</option></select></label>
-  <div class="spd"><span>מהירות הקול: <b id="rv">0.90</b></span><input id="rate" type="range" min="0.5" max="1.5" step="0.05" value="0.9">
-    <div class="row" style="justify-content:center"><button id="rm" aria-label="האט">−</button><button id="rp" aria-label="הגבר">+</button><button id="rt">נסה קול</button></div></div>
-  <div class="spd"><span>ימים שנספרים ברצף (למשתמש הנוכחי)</span><div id="dayc" class="row" style="flex-wrap:wrap"></div></div>
-  <label>מיקרופון<select id="micsel"><option value="">ברירת מחדל</option></select></label>
+  </label></div></section><section class="sec" data-k="tch"><h3 class="sech">המורה והקול</h3><div class="secs">מבטא, מהירות וסוג הקול.</div><div class="secb"><label>מבטא המורה<select id="acc"><option value="us">אמריקאי</option><option value="gb">בריטי</option></select></label><label>סוג הקול<select id="vox"><option value="dg" selected>קול טבעי ומנגן (Deepgram)</option><option value="basic">קול רגיל של הדפדפן (חינמי)</option></select></label><div class="spd"><span>מהירות הקול: <b id="rv">0.90</b></span><input id="rate" type="range" min="0.5" max="1.5" step="0.05" value="0.9">
+    <div class="row" style="justify-content:center"><button id="rm" aria-label="האט">−</button><button id="rp" aria-label="הגבר">+</button><button id="rt">נסה קול</button></div></div></div></section><section class="sec" data-k="les"><h3 class="sech">שיעור ויעדים</h3><div class="secs">משך שיעור, יעד יומי וימי לימוד.</div><div class="secb"><label>משך שיעור רצוי<select id="ltm"><option value="5">5 דקות</option><option value="10">10 דקות</option><option value="15" selected>15 דקות</option><option value="20">20 דקות</option><option value="30">30 דקות</option><option value="45">45 דקות</option></select><small>כשהזמן עובר, המורה מציע לסכם ולהיפרד.</small></label><label>יעד יומי<select id="dgl"><option value="5">5 דקות ביום</option><option value="10" selected>10 דקות ביום</option><option value="15">15 דקות ביום</option><option value="20">20 דקות ביום</option><option value="30">30 דקות ביום</option><option value="45">45 דקות ביום</option><option value="60">60 דקות ביום</option></select></label><div class="spd"><span>ימים שנספרים ברצף (למשתמש הנוכחי)</span><div id="dayc" class="row" style="flex-wrap:wrap"></div></div></div></section><section class="sec" data-k="look"><h3 class="sech">מראה וצלילים</h3><div class="secs">סגנון משחקיות וצלילים.</div><div class="secb"><label>סגנון משחקיות<select id="gfx"><option value="high">עשיר: נקודות, חיית מחמד ואנימציות (מתאים לילדים)</option><option value="low" selected>מינימלי: התקדמות והישגים בלבד (מתאים למבוגרים)</option></select></label><label>צלילי אפקט<select id="sfxm"><option value="on">מופעלים: צליל הצלחה ומעבר</option><option value="off">כבויים</option></select></label></div></section><section class="sec" data-k="acc"><h3 class="sech">חשבון וחיבור</h3><div class="secs">קוד כניסה, מיקרופון והתאמות מתקדמות.</div><div class="secb"><label>קוד כניסה<input id="ak" type="text" autocomplete="off" dir="ltr" placeholder="XXXX-XXXX" style="text-transform:uppercase"></label><input id="dk" type="hidden"><label>מיקרופון<select id="micsel"><option value="">ברירת מחדל</option></select></label><details class="adv"><summary>התאמה אישית למתקדמים</summary><div class="secb"><label>רמת הדיבור של המורה
+    <select id="slv"><option value="auto">אוטומטי לפי הרמה שלי</option><option value="1">1 · מתחיל מאוד</option><option value="2" selected>2 · קל</option><option value="3">3 · בינוני</option><option value="4">4 · מתקדם</option><option value="5">5 · כמו דובר שפת אם</option></select>
+    <small id="slvd" style="line-height:1.6"></small>
+  </label><label>הבנת עברית בשיחה<select id="hebmix"><option value="off" selected>אנגלית בלבד (מומלץ, עם פאנל התרגום)</option><option value="on">המורה מבין גם עברית</option></select>
+    <small id="hmd" style="line-height:1.6"><b>אנגלית בלבד:</b> המורה מדבר ומצפה לאנגלית בלבד. מי שלא יודע איך אומרים משהו משתמש בפאנל התרגום בצד. התמלול מהיר וזול יותר.<br><b>המורה מבין גם עברית:</b> אפשר לשלב מילים או משפטים בעברית באמצע השיחה. כל הקלטה מתומללת פעמיים, ולכן יש עיכוב קטן ועלות גבוהה יותר.</small></label><label>הקראת עברית במצב מתחילים<select id="hesp"><option value="on" selected>כן (קול עברי של המחשב)</option><option value="off">לא, רק בכתב</option></select></label><label>כפתור "העבר למורה" בפאנל התרגום<select id="sendb"><option value="off" selected>לא מופיע: התלמיד אומר בעצמו למורה (מומלץ ללימוד)</option><option value="on">מופיע: העברה למורה בלחיצה</option></select></label></div></details><label style="display:none">מצב מתחילים (עברית ואנגלית)<select id="bil"><option value="auto" selected>אוטומטי (ברמות הדיבור 1 ו-2)</option><option value="on">תמיד</option><option value="off">לא</option></select>
+    <small style="line-height:1.6">המורה מדברת גם עברית ומושכת בהדרגה לאנגלית, משפט אחד בכל פעם. כשהמצב פעיל, התמלול גם מבין עברית.</small></label></div></section>
   <button class="p" id="sset">✓ אישור ושמירה</button>
   <small style="color:var(--mut)">קוד הכניסה נשמר רק בדפדפן במחשב הזה.</small>
 </div>
@@ -405,9 +447,10 @@ function lesP(){
   if(t==='G')return {type:'G',g:GT[L.p.i],n:L.p.n,m:L.p.m};
   return {type:'R',gl:GT.slice(0,L.p.i+1)};
 }
-function bilOn(){return S.bil==='on'||(S.bil!=='off'&&(+S.sl||2)<=2)}
+function slv(){return (S.sl==='auto'||!S.sl)?(+slDef()):(+S.sl||2)}
+function bilOn(){return S.bil==='on'||(S.bil!=='off'&&slv()<=1)}
 function chatP(){
-  return {lvl:$('lvl').value,scen:$('scen').value,acc:S.acc==='gb'?'gb':'us',hebmix:(S.hebmix==='off'&&!bilOn())?'off':'on',bil:bilOn(),sl:+S.sl||2,
+  return {lvl:$('lvl').value,scen:$('scen').value,acc:S.acc==='gb'?'gb':'us',hebmix:(S.hebmix==='off'&&!bilOn())?'off':'on',bil:bilOn(),sl:slv(),
     prof:U?{name:enName(U),g:U.g,age:U.age,job:U.job}:null,dict:dictWords(),les:lesP(),gdone:gDone(),ending:!!(L&&L.ending)};
 }
 async function apiFetch(path,opt){
@@ -641,7 +684,7 @@ const SL={
 5:['כמו דובר שפת אם','דיבור טבעי לגמרי: אוצר מילים עשיר, ביטויים, הומור וקיצורים כמו אצל דובר שפת אם.']};
 function slDef(){return String({A1:1,A2:2,B1:3,B2:4,C1:5,C2:5}[(U&&U.cefr)||'A2']||2)}
 function drawSl(){
-  const v=$('slv').value;
+  const v=($('slv').value==='auto'||!$('slv').value)?slDef():$('slv').value;
   $('slvd').innerHTML=Object.keys(SL).map(k=>'<div'+(k===v?' class="on"':'')+'>'+k+' · '+SL[k][0]+': '+SL[k][1]+'</div>').join('');
 }
 function parse(r){
@@ -792,7 +835,7 @@ function plain(h){const m=h.map(x=>({role:x.role,content:x.content}));while(m.le
 function openModal(t,n){$('mt').textContent=t;$('mb').replaceChildren(n);$('md').classList.add('show')}
 $('mx').onclick=()=>$('md').classList.remove('show');
 function col(){const b=el('div');b.style.cssText='display:flex;flex-direction:column;gap:10px';return b}
-function showLvd(){const v=LV[$('lvl').value];$('lvd').textContent=v?$('lvl').value+' · '+v[0]+': '+v[1]:''}
+function showLvd(){const v=LV[$('lvl').value];$('lvd').textContent=v?$('lvl').value+' · '+v[0]+': '+v[1]:'';try{drawSl();drawLv()}catch(e){}}
 $('lvl').addEventListener('change',()=>{if(U){U.cefr=$('lvl').value;saveU()}showLvd()});
 
 function initUser(){
@@ -1309,7 +1352,7 @@ function resumeLesson(id){
 {const g=$('gset'),sv=$('gsave');['ak','micsel'].forEach(id=>g.insertBefore($(id).closest('label'),sv))}
 {const g=$('gset');g.prepend(el('h3',null,'הגדרות כלליות'));const x=el('button','cx','✕');x.setAttribute('aria-label','סגור');x.onclick=()=>g.classList.remove('open');g.prepend(x)}
 /* ---- version & updates ---- */
-const APP_VERSION='1.3.0',APP_DATE='06.11.2026',UPDATE_URL='https://27levyam-png.github.io/english-tutor/version.json';
+const APP_VERSION='1.4.0',APP_DATE='06.11.2026',UPDATE_URL='https://27levyam-png.github.io/english-tutor/version.json';
 $('ftx').innerHTML='© '+new Date().getFullYear()+' בצלאל. כל הזכויות שמורות<br>גרסה '+APP_VERSION+' · '+APP_DATE;
 function vNew(a,b){const x=String(a).split('.').map(Number),y=String(b).split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const p=x[i]||0,q=y[i]||0;if(p!==q)return p>q}return false}
 async function checkUpdate(silent){
@@ -1347,14 +1390,18 @@ function startSetup(){
   try{$('set').scrollTop=0}catch(e){}
 }
 $('sset').onclick=function(){if(U){U.cefr=$('lvl').value;saveU()}save();saved(this,closeSet)};
-$('slv').addEventListener('change',()=>{S.sl=$('slv').value;if(U){U.pref=U.pref||{};U.pref.sl=S.sl;saveU()}drawSl()});
+$('slv').addEventListener('change',()=>{S.sl=$('slv').value;if(U){U.pref=U.pref||{};U.pref.sl=S.sl;saveU()}drawSl();drawLv()});
+function drawLv(){const n=String(slv()),x=SL[n]||['',''];$('lvsum').innerHTML='המורה ידבר ברמה <b>'+n+' ('+x[0]+')</b>, '+(bilOn()?'<b>בעברית ובאנגלית</b>, ומושך לאנגלית בהדרגה.':'<b>באנגלית</b>.');const t={auto:'אוטומטי: למתחילים (רמה A1) המורה מדבר גם עברית, מרמה A2 ומעלה אנגלית בלבד.',on:'המורה מסביר בעברית ומלמד משפט באנגלית בכל פעם.',off:'שיחה באנגלית בלבד. אפשר ללחוץ על מילה לתרגום.'};$('tld').textContent=t[$('tlang').value]||''}
+$('tlang').addEventListener('change',()=>{const v=$('tlang').value;S.bil=v;$('bil').value=v;if(U){U.pref=U.pref||{};U.pref.bil=v;saveU()}drawLv()});
+$('lvl').addEventListener('change',()=>{drawSl();drawLv()});
+(function(){const sc=[...document.querySelectorAll('#set .sec')],tb=$('stabs');sc.forEach((s,i)=>{const b=document.createElement('button');b.textContent=s.querySelector('.sech').textContent;b.onclick=()=>{sc.forEach((x,j)=>x.classList.toggle('on',j===i));[...tb.children].forEach((x,j)=>x.classList.toggle('on',j===i))};tb.append(b)});tb.children[0]&&tb.children[0].click();new MutationObserver(()=>{if($('set').classList.contains('open'))requestAnimationFrame(()=>{$('set').scrollTop=0})}).observe($('set'),{attributes:true,attributeFilter:['class']})})();
 $('sendb').addEventListener('change',()=>{S.send=$('sendb').value;if(U){U.pref=U.pref||{};U.pref.send=S.send;saveU()}syncSend()});
 $('hebmix').addEventListener('change',()=>{S.hebmix=$('hebmix').value;if(U){U.pref=U.pref||{};U.pref.hebmix=S.hebmix;saveU()}});
 ['bil','hesp'].forEach(k=>$(k).addEventListener('change',()=>{S[k]=$(k).value;if(U){U.pref=U.pref||{};U.pref[k]=S[k];saveU()}}));
 ['acc','gloss','vox'].forEach(k=>$(k).addEventListener('change',()=>{if(U){U.pref=U.pref||{};U.pref[k]=$(k).value;saveU()}}));
 function loadPref(){
   const f=U.pref||{};
-  S.acc=f.acc||'us';$('acc').value=S.acc;S.gloss=f.gloss||'full';$('gloss').value=S.gloss;S.vox=f.vox||'dg';$('vox').value=S.vox;S.hebmix=f.hebmix||'off';$('hebmix').value=S.hebmix;S.bil=f.bil||'auto';$('bil').value=S.bil;S.hesp=f.hesp||'on';$('hesp').value=S.hesp;S.send=f.send||'off';$('sendb').value=S.send;syncSend();S.sl=f.sl||slDef();$('slv').value=S.sl;drawSl();S.lt=f.lt||((+U.age||99)<=10?'10':'15');$('ltm').value=S.lt;S.dg=f.dg||'10';$('dgl').value=S.dg;S.gf=f.gf||((+U.age||99)<=12?'high':'low');$('gfx').value=S.gf;S.sfx=f.sfx||'on';$('sfxm').value=S.sfx;setRate(f.rate||.9);
+  S.acc=f.acc||'us';$('acc').value=S.acc;S.gloss=f.gloss||'full';$('gloss').value=S.gloss;S.vox=f.vox||'dg';$('vox').value=S.vox;S.hebmix=f.hebmix||'off';$('hebmix').value=S.hebmix;S.bil=f.bil||'auto';$('bil').value=S.bil;S.hesp=f.hesp||'on';$('hesp').value=S.hesp;S.send=f.send||'off';$('sendb').value=S.send;syncSend();S.sl=f.sl||'auto';$('slv').value=S.sl;$('tlang').value=S.bil;drawSl();drawLv();S.lt=f.lt||((+U.age||99)<=10?'10':'15');$('ltm').value=S.lt;S.dg=f.dg||'10';$('dgl').value=S.dg;S.gf=f.gf||((+U.age||99)<=12?'high':'low');$('gfx').value=S.gf;S.sfx=f.sfx||'on';$('sfxm').value=S.sfx;setRate(f.rate||.9);
 }
 $('bkx').onclick=()=>{const a=el('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({users:DB},null,1)],{type:'application/json'}));a.download='english-tutor-backup-'+dk(new Date())+'.json';a.click()};
 $('bkr').onclick=()=>$('bki').click();
@@ -1398,12 +1445,12 @@ function renderHome(){
   lc.append(el('b',null,'הרמה שלי'),rd,el('small',null,A?A.pct+'% ברמה '+A.cefr:'עוד אין הערכה'));
   two.append(sc,lc);
   const tiles=el('div','tiles');
-  [['📝','מבחן מילים','pur',()=>$('qzb').click()],['📖','מילון אישי','yel',()=>$('dictb').click()],['💬','שיחה חופשית','blue',startFree],['📈','התקדמות','grn',showProg],['⚙️','הגדרות','',()=>$('gear').click()],['👥','החלף משתמש','',showLogin]]
+  [['📝','מבחן מילים','pur',()=>$('qzb').click()],['📖','מילון אישי','yel',()=>$('dictb').click()],['💬','שיחה חופשית','blue',startFree],['📈','התקדמות','grn',showProg]]
   .forEach(x=>{const b=el('button','tile'+(x[2]?' t-'+x[2]:''));b.append(el('span',null,x[0]),document.createTextNode(x[1]));b.onclick=x[3];tiles.append(b)});
   const hb2=el('button','tile t-org');hb2.style.cssText='grid-column:1/-1;flex-direction:row;justify-content:center;gap:10px';hb2.append(el('span',null,'📎'),document.createTextNode('עזרה בלימודים: קריאה ושינון מילים'));hb2.onclick=openHelp;tiles.append(hb2);
-  const hb3=el('button','tile t-pur');hb3.style.cssText=hb2.style.cssText;hb3.append(el('span',null,'🎮'),document.createTextNode('משחקים'));hb3.onclick=openGames;tiles.append(hb3);{const hb4=el('button','tile t-yel');hb4.style.cssText=hb2.style.cssText;hb4.append(el('span',null,'📚'),document.createTextNode('שיעורים קודמים'));hb4.onclick=openSessions;tiles.append(hb4)}
+  const hb3=el('button','tile t-pur');hb3.style.cssText=hb2.style.cssText;hb3.append(el('span',null,'🎮'),document.createTextNode('משחקים'));hb3.onclick=openGames;tiles.append(hb3);{const hb4=el('button','tile t-yel');hb4.style.cssText=hb2.style.cssText;hb4.append(el('span',null,'📚'),document.createTextNode('שיעורים קודמים'));hb4.onclick=openSessions;window.__pv=hb4}
   if(S.gf==='high'){try{aqTick();const hb5=el('button','tile t-grn');hb5.style.cssText=hb2.style.cssText;hb5.append(el('span',null,'🐠'),document.createTextNode('האקווריום · מנות אוכל: '+aq().food));hb5.onclick=openAquarium;tiles.append(hb5)}catch(e){console.error(e)}}
-  const hc=el('div','hcol');hc.append(hi,hero);try{const gc=goalCard();if(gc)hc.append(gc)}catch(e){console.error(e)}hc.append(two);h.append(hc,tiles);{const ib=el('button','intb','ℹ️ סקירה');ib.title='סקירה: איך משתמשים בתוכנה';ib.onclick=openIntro;h.append(ib)}
+  const hc=el('div','hcol');hc.append(hi,hero);if(window.__pv){window.__pv.classList.add('prevb');hc.append(window.__pv);window.__pv=null}try{const gc=goalCard();if(gc)hc.append(gc)}catch(e){console.error(e)}hc.append(two);h.append(hc,tiles);{const ib=el('button','intb','ℹ️ סקירה');ib.title='סקירה: איך משתמשים בתוכנה';ib.onclick=openIntro;h.append(ib)}
 }
 
 /* ---- natural voice ---- */
@@ -2197,7 +2244,7 @@ function gPairs(lv){
   box.append(el('div',null,'שלב '+(lv+1)+': מצאו את הזוגות, מילה באנגלית והתרגום שלה'),grid,mv);openModal('משחק זיכרון',box);
 }
 const LR={1:[3,4],2:[3,5],3:[4,7],4:[4,9],5:[5,12]};
-function gLv(){return Math.min(5,Math.max(1,+S.sl||2))}
+function gLv(){return Math.min(5,Math.max(1,slv()))}
 function gWords(n,lv){
   let [a,b]=LR[lv],items=[];
   for(let k=0;k<4;k++){
